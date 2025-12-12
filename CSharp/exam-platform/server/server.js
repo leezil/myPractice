@@ -340,7 +340,7 @@ async function validateCodeLocally(code, problemId) {
       env: env
     });
     
-    // stdout에 welcome 메시지가 포함되어 있으면 제거
+    // stdout에 welcome 메시지가 포함되어 있으면 제거 (오류 메시지는 유지)
     const cleanOutput = stdout.split('\n')
       .filter(line => !line.includes('Welcome to .NET') && 
                       !line.includes('SDK Version:') &&
@@ -353,25 +353,31 @@ async function validateCodeLocally(code, problemId) {
                       !line.includes('Use \'dotnet --help\'') &&
                       !line.includes('Determining projects to restore') &&
                       !line.includes('All projects are up-to-date for restore') &&
-                      !line.trim().startsWith('---'))
+                      !line.trim().startsWith('---') &&
+                      line.trim() !== '')
       .join('\n');
+    
+    // stderr도 확인
+    const allOutput = (cleanOutput + '\n' + (stderr || '')).trim();
     
     if (stderr && stderr.trim()) {
       console.log('[컴파일 검증] 빌드 stderr:', stderr);
     }
     
+    console.log('[컴파일 검증] 전체 출력 (처음 2000자):\n' + allOutput.substring(0, 2000));
+    
     // 빌드 성공 여부 확인
     // "Build succeeded" 또는 "Build FAILED" 메시지 확인
-    const buildSucceeded = cleanOutput.toLowerCase().includes('build succeeded') || 
-                           (cleanOutput.toLowerCase().includes('succeeded') && 
-                            !cleanOutput.toLowerCase().includes('failed'));
+    const buildSucceeded = allOutput.toLowerCase().includes('build succeeded') || 
+                           (allOutput.toLowerCase().includes('succeeded') && 
+                            !allOutput.toLowerCase().includes('failed') &&
+                            !allOutput.toLowerCase().includes('error'));
     const hasError = !buildSucceeded && (
-      cleanOutput.toLowerCase().includes('error') || 
-      cleanOutput.toLowerCase().includes('build failed') ||
-      (stderr && stderr.toLowerCase().includes('error'))
+      allOutput.toLowerCase().includes('error') || 
+      allOutput.toLowerCase().includes('build failed') ||
+      allOutput.toLowerCase().includes('failed')
     );
     
-    console.log('[컴파일 검증] cleanOutput:', cleanOutput);
     console.log('[컴파일 검증] buildSucceeded:', buildSucceeded, 'hasError:', hasError);
     
     // 임시 디렉토리 삭제
@@ -382,12 +388,21 @@ async function validateCodeLocally(code, problemId) {
     }
     
     if (hasError) {
+      // 오류 메시지 추출
+      const errorLines = allOutput.split('\n')
+        .filter(line => line.toLowerCase().includes('error') || 
+                       line.toLowerCase().includes('warning') ||
+                       line.toLowerCase().includes('failed'))
+        .slice(0, 10) // 최대 10줄
+        .join('\n');
+      
       return { 
         success: false, 
         compiled: false, 
-        output: cleanOutput,
+        output: errorLines || allOutput.substring(0, 1000),
         stdout: cleanOutput,
-        stderr: stderr || ''
+        stderr: stderr || '',
+        error: errorLines || allOutput.substring(0, 1000)
       };
     }
     
@@ -883,6 +898,7 @@ app.post('/api/:subject/problems/:id/submit', async (req, res) => {
         // 사용자 코드 삽입 (인덴트 유지)
         // 템플릿에서 이미 구현된 메소드 본문의 인덴트를 찾기
         let indent = '            '; // 기본 12칸 인덴트
+        let indentFound = false; // 인덴트를 찾았는지 여부
         
         // 템플릿에서 메소드 본문의 인덴트 패턴 찾기
         // 실제 구현이 있는 메소드(본문에 코드가 있는)의 인덴트 확인
@@ -915,30 +931,34 @@ app.post('/api/:subject/problems/:id/submit', async (req, res) => {
                   const bodyIndentMatch = methodLine.match(/^(\s+)/);
                   if (bodyIndentMatch && bodyIndentMatch[1].length >= 8) {
                     indent = bodyIndentMatch[1];
+                    indentFound = true; // 인덴트를 찾았음을 표시
                     console.log(`[디버그] 인덴트 발견 (줄 ${m}, 메소드 줄 ${k}): "${indent}" (${indent.length}칸), 내용: "${methodLine.trim()}"`);
-                    // 인덴트를 찾았으면 모든 루프 종료
+                    // 인덴트를 찾았으면 모든 루프 즉시 종료
                     braceCount = -1; // 내부 루프 종료를 위해
+                    foundBrace = false; // 외부 루프도 종료하기 위해
                     break;
                   }
                 }
                 if (braceCount <= 0) break;
               }
             }
-            // 인덴트를 찾았으면 외부 루프도 종료
-            if (indent !== '            ' && indent.length >= 8) {
+            // 인덴트를 찾았으면 외부 루프도 즉시 종료
+            if (indentFound) {
               console.log(`[디버그] 인덴트 최종 선택: "${indent}" (${indent.length}칸)`);
               break;
             }
           }
         }
         
-        // 인덴트를 찾지 못한 경우 주석 줄의 인덴트 + 4칸
-        if (indent === '            ') {
+        // 인덴트를 찾지 못한 경우에만 주석 줄의 인덴트 + 4칸 사용
+        if (!indentFound) {
           const commentIndentMatch = lines[i].match(/^(\s*)/);
           if (commentIndentMatch) {
             indent = commentIndentMatch[1] + '    '; // 주석 인덴트 + 4칸
             console.log(`[디버그] 주석 인덴트 사용: "${indent}" (${indent.length}칸)`);
           }
+        } else {
+          console.log(`[디버그] 찾은 인덴트 사용: "${indent}" (${indent.length}칸)`);
         }
         
         const indentedUserCode = userCodeLines.map(line => {
@@ -1169,9 +1189,13 @@ app.post('/api/:subject/problems/:id/submit', async (req, res) => {
       console.log(`[디버그] 컴파일 실패 - 문제 ID: ${problem.id}, 타입: ${problem.type}`);
       console.log(`[디버그] 생성된 코드 길이: ${userFullCode.length}`);
       console.log(`[디버그] 생성된 전체 코드:\n${userFullCode}`);
-      console.log(`[디버그] 컴파일 오류 stdout (처음 2000자):\n${compileResult.stdout.substring(0, 2000)}`);
+      console.log(`[디버그] 컴파일 오류 output:\n${compileResult.output || compileResult.stdout || compileResult.stderr || '오류 메시지 없음'}`);
+      console.log(`[디버그] 컴파일 오류 stdout (전체):\n${compileResult.stdout || '없음'}`);
       if (compileResult.stderr) {
-        console.log(`[디버그] 컴파일 오류 stderr (처음 2000자):\n${compileResult.stderr.substring(0, 2000)}`);
+        console.log(`[디버그] 컴파일 오류 stderr (전체):\n${compileResult.stderr}`);
+      }
+      if (compileResult.error) {
+        console.log(`[디버그] 컴파일 오류 error:\n${compileResult.error}`);
       }
     } else {
       console.log(`[디버그] 컴파일 성공 - 문제 ID: ${problem.id}, 타입: ${problem.type}`);
@@ -1180,12 +1204,26 @@ app.post('/api/:subject/problems/:id/submit', async (req, res) => {
     // 컴파일 실패 시에도 사용자 입력 부분만 정답과 비교
     if (!compileResult.success) {
       // 컴파일 오류 메시지 추출
-      const errorOutput = compileResult.stdout || compileResult.stderr || '';
+      const errorOutput = compileResult.output || compileResult.stdout || compileResult.stderr || compileResult.error || '';
+      
+      // 오류 메시지에서 실제 오류만 추출
       const errorLines = errorOutput.split('\n')
-        .filter(line => line.includes('error'))
-        .slice(0, 3)
+        .filter(line => {
+          const lower = line.toLowerCase();
+          return (lower.includes('error') || lower.includes('warning')) && 
+                 !lower.includes('determining') &&
+                 !lower.includes('restore') &&
+                 !lower.includes('up-to-date') &&
+                 !lower.includes('welcome') &&
+                 !lower.includes('telemetry');
+        })
+        .slice(0, 5) // 최대 5줄
         .map(line => line.trim())
-        .join('; ');
+        .filter(line => line.length > 0);
+      
+      const errorMessage = errorLines.length > 0 
+        ? errorLines.join('\n') 
+        : (errorOutput.substring(0, 500) || '컴파일 오류가 발생했습니다.');
 
       // 컴파일 실패해도 사용자 입력 부분만 정답과 비교
       const normalizeForComparison = (str) => {
@@ -1210,7 +1248,7 @@ app.post('/api/:subject/problems/:id/submit', async (req, res) => {
           : '컴파일 오류가 발생했습니다.',
         answer: problem.answer,
         userCode: code,
-        compileError: errorLines || '알 수 없는 컴파일 오류',
+        compileError: errorMessage,
         compileDetails: errorOutput.substring(0, 500) // 처음 500자만 전송
       });
     }
