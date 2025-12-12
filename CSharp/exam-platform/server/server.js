@@ -7,60 +7,63 @@ const { getConceptsByCategory, getAllConcepts } = require('./conceptCategories')
 const { getTopicsByCategory, getAllTopics } = require('./topicCategories');
 const { getProblems } = require('./problemParser');
 
+// 클래스 정의 추출 함수
+function extractClassDefinition(template) {
+  if (!template) return null;
+  
+  const lines = template.split('\n');
+  let classStartIndex = -1;
+  let classEndIndex = -1;
+  let braceCount = 0;
+  
+  // "class " 로 시작하는 줄 찾기 (첫 번째 클래스)
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trim();
+    if (trimmed.startsWith('class ') && !trimmed.includes('Program')) {
+      classStartIndex = i;
+      break;
+    }
+  }
+  
+  if (classStartIndex === -1) return null;
+  
+  // 클래스 정의 추출 (중괄호 포함)
+  braceCount = 0;
+  for (let i = classStartIndex; i < lines.length; i++) {
+    const line = lines[i];
+    braceCount += (line.match(/{/g) || []).length;
+    braceCount -= (line.match(/}/g) || []).length;
+    
+    if (braceCount <= 0 && line.includes('}')) {
+      classEndIndex = i;
+      break;
+    }
+  }
+  
+  if (classEndIndex === -1) return null;
+  
+  // 클래스 정의만 추출
+  const classLines = lines.slice(classStartIndex, classEndIndex + 1);
+  let classCode = classLines.join('\n');
+  
+  // 주석 제거하되 "여기에 클래스를 완성하세요"는 유지
+  classCode = classCode.replace(/\/\/.*$/gm, (match) => {
+    if (match.includes('여기에 클래스를 완성하세요')) {
+      return match;
+    }
+    return '';
+  });
+  
+  // 빈 줄 정리
+  classCode = classCode.replace(/\n\s*\n\s*\n/g, '\n\n');
+  
+  return classCode.trim();
+}
+
 // 간단한 코드 추출 함수 (extractCodeParts 대체)
 function extractCodeToWrite(problem) {
   if (problem.codeToWrite) {
     return problem.codeToWrite;
-  }
-  
-  // 클래스 정의 문제: 클래스 정의를 추출하여 코드 작성 칸에 표시
-  if (problem.type === 'class' && problem.template) {
-    const lines = problem.template.split('\n');
-    let classStartIndex = -1;
-    let classEndIndex = -1;
-    let braceCount = 0;
-    
-    // "class " 로 시작하는 줄 찾기
-    for (let i = 0; i < lines.length; i++) {
-      if (lines[i].trim().startsWith('class ')) {
-        classStartIndex = i;
-        break;
-      }
-    }
-    
-    if (classStartIndex !== -1) {
-      // 클래스 정의 추출 (중괄호 포함)
-      braceCount = 0;
-      for (let i = classStartIndex; i < lines.length; i++) {
-        const line = lines[i];
-        braceCount += (line.match(/{/g) || []).length;
-        braceCount -= (line.match(/}/g) || []).length;
-        
-        if (braceCount <= 0 && line.includes('}')) {
-          classEndIndex = i;
-          break;
-        }
-      }
-      
-      if (classEndIndex !== -1) {
-        // 클래스 정의만 추출
-        const classLines = lines.slice(classStartIndex, classEndIndex + 1);
-        let classCode = classLines.join('\n');
-        
-        // 주석 제거
-        classCode = classCode.replace(/\/\/.*$/gm, '');
-        // 빈 줄 정리
-        classCode = classCode.replace(/\n\s*\n\s*\n/g, '\n\n');
-        
-        // 클래스 본문을 빈 중괄호로 변경
-        const classMatch = classCode.match(/(class\s+\w+[^{]*\{)([\s\S]*)(\})/);
-        if (classMatch) {
-          return `${classMatch[1]}\n    // 여기에 클래스를 완성하세요\n\n${classMatch[3]}`;
-        }
-        
-        return classCode.trim();
-      }
-    }
   }
   
   if (problem.template && problem.template.includes('/* 빈칸 */')) {
@@ -159,15 +162,25 @@ app.get('/api/:subject/problems/:id', (req, res) => {
   
   // 코드 분리
   const fullCode = getFullCode(problem);
-  const codeToWrite = extractCodeToWrite(problem);
+  let codeToWrite = extractCodeToWrite(problem);
+  
+  // 클래스 정의 문제의 경우 특별 처리
+  if (problem.type === 'class') {
+    // 전체 코드 섹션: 전체 template 표시
+    // 코드 작성 칸: 클래스 정의만 표시
+    const classDefinition = extractClassDefinition(problem.template);
+    if (classDefinition) {
+      codeToWrite = classDefinition;
+    }
+  }
   
   // 정답은 별도로 전달 (정답 보기 버튼용)
   // 전체 코드 섹션: 완전한 예제 코드 (보기용)
   // 코드 작성 칸: 작성할 부분만 (작성용)
   res.json({
     ...problem,
-    fullCode: codeToWrite, // 문제 설명의 "전체 코드" 섹션에 표시할 작성할 부분 (반대로 설정)
-    codeToWrite: fullCode // 코드 작성 칸에 표시할 전체 코드 (반대로 설정)
+    fullCode: problem.type === 'class' ? problem.template : codeToWrite, // 클래스 문제는 전체 template, 아니면 작성할 부분
+    codeToWrite: problem.type === 'class' ? codeToWrite : fullCode // 클래스 문제는 클래스 정의만, 아니면 전체 코드
     // answer는 포함되어 있지만, 프론트엔드에서 정답 보기 버튼을 눌렀을 때만 표시
   });
 });
