@@ -319,16 +319,36 @@ async function validateCodeLocally(code, problemId) {
     // dotnet build 실행 (절대 경로 사용)
     console.log('[컴파일 검증] dotnet 빌드 실행:', dotnetExe);
     console.log('[컴파일 검증] 컴파일할 코드 (처음 1000자):\n' + code.substring(0, 1000));
-    const { stdout, stderr } = await execAsync(`"${dotnetExe}" build`, {
+    // DOTNET_CLI_TELEMETRY_OPTOUT 환경변수 설정하여 welcome 메시지 제거
+    env.DOTNET_CLI_TELEMETRY_OPTOUT = '1';
+    // stderr도 stdout으로 리다이렉트하여 모든 출력 확인
+    const { stdout, stderr } = await execAsync(`"${dotnetExe}" build --no-restore 2>&1`, {
       timeout: 15000,
-      maxBuffer: 1024 * 1024,
+      maxBuffer: 1024 * 1024 * 10, // 10MB 버퍼 증가
       cwd: projectDir,
       env: env
     });
     
+    // stdout에 welcome 메시지가 포함되어 있으면 제거
+    const cleanOutput = stdout.split('\n')
+      .filter(line => !line.includes('Welcome to .NET') && 
+                      !line.includes('SDK Version:') &&
+                      !line.includes('Telemetry') &&
+                      !line.includes('Installed an ASP.NET Core') &&
+                      !line.includes('Write your first app') &&
+                      !line.includes('Find out what') &&
+                      !line.includes('Explore documentation') &&
+                      !line.includes('Report issues') &&
+                      !line.includes('Use \'dotnet --help\''))
+      .join('\n');
+    
     if (stderr && stderr.trim()) {
       console.log('[컴파일 검증] 빌드 stderr:', stderr);
     }
+    
+    // 빌드 성공 여부 확인 (오류 메시지가 없으면 성공)
+    const hasError = cleanOutput.toLowerCase().includes('error') || 
+                     (stderr && stderr.toLowerCase().includes('error'));
     
     // 임시 디렉토리 삭제
     try {
@@ -337,7 +357,17 @@ async function validateCodeLocally(code, problemId) {
       console.log('[임시 파일 삭제 실패]', e.message);
     }
     
-    return { success: true, compiled: true, output: stdout };
+    if (hasError) {
+      return { 
+        success: false, 
+        compiled: false, 
+        output: cleanOutput,
+        stdout: cleanOutput,
+        stderr: stderr || ''
+      };
+    }
+    
+    return { success: true, compiled: true, output: cleanOutput };
   } catch (error) {
     // 임시 디렉토리 삭제
     try {
