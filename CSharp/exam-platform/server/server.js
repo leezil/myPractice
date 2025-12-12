@@ -80,23 +80,99 @@ function getFullCode(problem) {
   return problem.template || '';
 }
 
-// 간단한 검증 함수 (validateWithDocker 대체)
+// .NET SDK 사용 가능 여부 확인
 async function checkDotNetSDKAvailable() {
-  return { available: false };
+  const { exec } = require('child_process');
+  const { promisify } = require('util');
+  const execAsync = promisify(exec);
+  
+  try {
+    const { stdout } = await execAsync('dotnet --version', { 
+      timeout: 5000,
+      maxBuffer: 1024 * 1024
+    });
+    return { available: true, version: stdout.trim() };
+  } catch (error) {
+    console.log('[.NET SDK] 사용 불가:', error.message);
+    return { available: false };
+  }
 }
 
 async function checkDockerAvailable() {
-  return false;
+  return false; // Docker는 사용하지 않음
 }
 
+// C# 코드 컴파일 검증
 async function validateCodeLocally(code, problemId) {
-  // 간단한 문자열 비교로 대체
-  return { success: true, compiled: true };
+  const { exec } = require('child_process');
+  const { promisify } = require('util');
+  const fs = require('fs');
+  const path = require('path');
+  const execAsync = promisify(exec);
+  
+  const tempDir = path.join(__dirname, 'temp-validation');
+  if (!fs.existsSync(tempDir)) {
+    fs.mkdirSync(tempDir, { recursive: true });
+  }
+  
+  const timestamp = Date.now();
+  const projectDir = path.join(tempDir, `proj_${timestamp}`);
+  const csFile = path.join(projectDir, 'Program.cs');
+  
+  try {
+    // 프로젝트 디렉토리 생성
+    fs.mkdirSync(projectDir, { recursive: true });
+    
+    // 코드를 Program.cs에 저장
+    fs.writeFileSync(csFile, code, 'utf-8');
+    
+    // .csproj 파일 생성
+    const csprojContent = `<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+</Project>`;
+    fs.writeFileSync(path.join(projectDir, 'proj.csproj'), csprojContent);
+    
+    // dotnet build 실행
+    const { stdout, stderr } = await execAsync('dotnet build', {
+      timeout: 15000,
+      maxBuffer: 1024 * 1024,
+      cwd: projectDir
+    });
+    
+    // 임시 디렉토리 삭제
+    try {
+      fs.rmSync(projectDir, { recursive: true, force: true });
+    } catch (e) {
+      console.log('[임시 파일 삭제 실패]', e.message);
+    }
+    
+    return { success: true, compiled: true, output: stdout };
+  } catch (error) {
+    // 임시 디렉토리 삭제
+    try {
+      fs.rmSync(projectDir, { recursive: true, force: true });
+    } catch (e) {
+      console.log('[임시 파일 삭제 실패]', e.message);
+    }
+    
+    const errorMessage = error.stderr || error.stdout || error.message;
+    return { 
+      success: false, 
+      compiled: false, 
+      error: errorMessage,
+      stdout: error.stdout || '',
+      stderr: error.stderr || ''
+    };
+  }
 }
 
 async function validateCodeInDocker(code, problemId) {
-  // 간단한 문자열 비교로 대체
-  return { success: true, compiled: true };
+  // Docker는 사용하지 않으므로 로컬 검증 사용
+  return await validateCodeLocally(code, problemId);
 }
 
 const app = express();
