@@ -12,6 +12,57 @@ function extractCodeToWrite(problem) {
   if (problem.codeToWrite) {
     return problem.codeToWrite;
   }
+  
+  // 클래스 정의 문제: 클래스 정의를 추출하여 코드 작성 칸에 표시
+  if (problem.type === 'class' && problem.template) {
+    const lines = problem.template.split('\n');
+    let classStartIndex = -1;
+    let classEndIndex = -1;
+    let braceCount = 0;
+    
+    // "class " 로 시작하는 줄 찾기
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].trim().startsWith('class ')) {
+        classStartIndex = i;
+        break;
+      }
+    }
+    
+    if (classStartIndex !== -1) {
+      // 클래스 정의 추출 (중괄호 포함)
+      braceCount = 0;
+      for (let i = classStartIndex; i < lines.length; i++) {
+        const line = lines[i];
+        braceCount += (line.match(/{/g) || []).length;
+        braceCount -= (line.match(/}/g) || []).length;
+        
+        if (braceCount <= 0 && line.includes('}')) {
+          classEndIndex = i;
+          break;
+        }
+      }
+      
+      if (classEndIndex !== -1) {
+        // 클래스 정의만 추출
+        const classLines = lines.slice(classStartIndex, classEndIndex + 1);
+        let classCode = classLines.join('\n');
+        
+        // 주석 제거
+        classCode = classCode.replace(/\/\/.*$/gm, '');
+        // 빈 줄 정리
+        classCode = classCode.replace(/\n\s*\n\s*\n/g, '\n\n');
+        
+        // 클래스 본문을 빈 중괄호로 변경
+        const classMatch = classCode.match(/(class\s+\w+[^{]*\{)([\s\S]*)(\})/);
+        if (classMatch) {
+          return `${classMatch[1]}\n    // 여기에 클래스를 완성하세요\n\n${classMatch[3]}`;
+        }
+        
+        return classCode.trim();
+      }
+    }
+  }
+  
   if (problem.template && problem.template.includes('/* 빈칸 */')) {
     return '/* 빈칸 */';
   }
@@ -19,6 +70,7 @@ function extractCodeToWrite(problem) {
 }
 
 function getFullCode(problem) {
+  // 전체 코드 섹션에는 예제 코드 또는 완전한 템플릿 표시
   if (problem.exampleCode) {
     return problem.exampleCode;
   }
@@ -110,10 +162,12 @@ app.get('/api/:subject/problems/:id', (req, res) => {
   const codeToWrite = extractCodeToWrite(problem);
   
   // 정답은 별도로 전달 (정답 보기 버튼용)
+  // 전체 코드 섹션: 완전한 예제 코드 (보기용)
+  // 코드 작성 칸: 작성할 부분만 (작성용)
   res.json({
     ...problem,
-    fullCode: fullCode, // 문제 설명에 표시할 전체 코드
-    codeToWrite: codeToWrite // 코드 작성 칸에 표시할 작성할 부분
+    fullCode: codeToWrite, // 문제 설명의 "전체 코드" 섹션에 표시할 작성할 부분 (반대로 설정)
+    codeToWrite: fullCode // 코드 작성 칸에 표시할 전체 코드 (반대로 설정)
     // answer는 포함되어 있지만, 프론트엔드에서 정답 보기 버튼을 눌렀을 때만 표시
   });
 });
