@@ -881,20 +881,24 @@ app.post('/api/:subject/problems/:id/submit', async (req, res) => {
     for (let i = 0; i < lines.length; i++) {
       if (lines[i].includes('// 여기에 코드를 작성하세요')) {
         // 사용자 코드 삽입 (인덴트 유지)
-        // 템플릿 전체를 스캔하여 다른 메소드 본문의 인덴트를 찾기
+        // 템플릿에서 이미 구현된 메소드 본문의 인덴트를 찾기
         let indent = '            '; // 기본 12칸 인덴트
         
         // 템플릿에서 메소드 본문의 인덴트 패턴 찾기
-        // "public" 또는 "private" 등으로 시작하는 메소드 시그니처 다음의 본문 인덴트 확인
+        // 실제 구현이 있는 메소드(본문에 코드가 있는)의 인덴트 확인
+        // override 키워드 유무와 관계없이 본문에 실제 코드가 있는 메소드를 찾기
         for (let k = 0; k < lines.length; k++) {
           const line = lines[k];
-          // 메소드 시그니처 찾기
-          if ((line.includes('public') || line.includes('private') || line.includes('protected') || line.includes('override')) &&
-              line.includes('(') && line.includes(')') && k !== i - 1) {
+          // 메소드 시그니처 찾기 (public, private, protected 등 + 괄호가 있는)
+          // abstract나 interface 메소드는 제외 (본문이 없음)
+          if ((line.includes('public') || line.includes('private') || line.includes('protected') || line.includes('internal')) &&
+              line.includes('(') && line.includes(')') && 
+              !line.includes('abstract') && !line.trim().startsWith('interface') &&
+              k !== i - 1) {
             // 다음 줄들에서 메소드 본문 찾기
             let braceCount = 0;
             let foundBrace = false;
-            for (let m = k + 1; m < lines.length && m < k + 20; m++) {
+            for (let m = k + 1; m < lines.length && m < k + 30; m++) {
               const methodLine = lines[m];
               if (methodLine.includes('{')) {
                 foundBrace = true;
@@ -903,14 +907,15 @@ app.post('/api/:subject/problems/:id/submit', async (req, res) => {
               if (foundBrace) {
                 braceCount += (methodLine.match(/{/g) || []).length;
                 braceCount -= (methodLine.match(/}/g) || []).length;
-                // 메소드 본문 내의 코드 줄 찾기
+                // 메소드 본문 내의 실제 코드 줄 찾기 (Console.WriteLine 같은)
                 if (braceCount > 0 && methodLine.trim() !== '' && 
                     !methodLine.includes('{') && !methodLine.includes('}') &&
-                    !methodLine.includes('// 여기에 코드를 작성하세요')) {
+                    !methodLine.includes('// 여기에 코드를 작성하세요') &&
+                    (methodLine.includes('Console') || methodLine.includes('return') || methodLine.includes('=') || methodLine.includes('if') || methodLine.includes('for'))) {
                   const bodyIndentMatch = methodLine.match(/^(\s+)/);
                   if (bodyIndentMatch && bodyIndentMatch[1].length >= 8) {
                     indent = bodyIndentMatch[1];
-                    console.log(`[디버그] 인덴트 발견 (줄 ${m}): "${indent}" (${indent.length}칸)`);
+                    console.log(`[디버그] 인덴트 발견 (줄 ${m}, 메소드 줄 ${k}): "${indent}" (${indent.length}칸), 내용: "${methodLine.trim()}"`);
                     break;
                   }
                 }
