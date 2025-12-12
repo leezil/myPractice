@@ -762,23 +762,33 @@ app.post('/api/:subject/problems/:id/submit', async (req, res) => {
         // 각 줄의 앞쪽 공통 인덴트 제거 (최소 인덴트 기준)
         const bodyLines = extractedBody.split('\n');
         if (bodyLines.length > 0) {
-          // 빈 줄이 아닌 첫 번째 줄의 인덴트 찾기
+          // 빈 줄이 아닌 모든 줄의 인덴트 중 최소값 찾기
           let minIndent = Infinity;
           for (const line of bodyLines) {
             if (line.trim() !== '') {
-              const indent = line.match(/^(\s*)/)[1].length;
-              if (indent < minIndent) {
-                minIndent = indent;
+              const indentMatch = line.match(/^(\s*)/);
+              if (indentMatch) {
+                const indent = indentMatch[1].length;
+                if (indent < minIndent) {
+                  minIndent = indent;
+                }
               }
             }
           }
           
-          // 공통 인덴트 제거
+          // 공통 인덴트 제거 (최소 인덴트만큼 모든 줄에서 제거)
           if (minIndent > 0 && minIndent < Infinity) {
             extractedBody = bodyLines.map(line => {
               if (line.trim() === '') return line;
-              return line.substring(minIndent);
+              // 최소 인덴트만큼 제거
+              if (line.length >= minIndent) {
+                return line.substring(minIndent);
+              }
+              return line.trimStart();
             }).join('\n');
+          } else {
+            // 인덴트를 찾지 못한 경우 모든 공백 제거 후 재구성
+            extractedBody = bodyLines.map(line => line.trimStart()).join('\n');
           }
         }
         
@@ -817,12 +827,14 @@ app.post('/api/:subject/problems/:id/submit', async (req, res) => {
     for (let i = 0; i < lines.length; i++) {
       if (lines[i].includes('// 여기에 코드를 작성하세요')) {
         // 사용자 코드 삽입 (인덴트 유지)
-        const indent = lines[i].match(/^(\s*)/)[1]; // 주석 줄의 인덴트 가져오기
+        const indentMatch = lines[i].match(/^(\s*)/);
+        const indent = indentMatch ? indentMatch[1] : '        '; // 기본 8칸 인덴트
         const indentedUserCode = userCodeLines.map(line => {
           // 빈 줄이면 그대로 유지
           if (line.trim() === '') return line;
-          // 인덴트 추가
-          return indent + line;
+          // 인덴트 추가 (줄 앞의 모든 공백 제거 후 추가)
+          const trimmedLine = line.trimStart();
+          return indent + trimmedLine;
         });
         result.push(...indentedUserCode);
         skipUntilBrace = true;
