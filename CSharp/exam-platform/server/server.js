@@ -916,13 +916,19 @@ app.post('/api/:subject/problems/:id/submit', async (req, res) => {
                   if (bodyIndentMatch && bodyIndentMatch[1].length >= 8) {
                     indent = bodyIndentMatch[1];
                     console.log(`[디버그] 인덴트 발견 (줄 ${m}, 메소드 줄 ${k}): "${indent}" (${indent.length}칸), 내용: "${methodLine.trim()}"`);
+                    // 인덴트를 찾았으면 모든 루프 종료
+                    braceCount = -1; // 내부 루프 종료를 위해
                     break;
                   }
                 }
                 if (braceCount <= 0) break;
               }
             }
-            if (indent !== '            ') break;
+            // 인덴트를 찾았으면 외부 루프도 종료
+            if (indent !== '            ' && indent.length >= 8) {
+              console.log(`[디버그] 인덴트 최종 선택: "${indent}" (${indent.length}칸)`);
+              break;
+            }
           }
         }
         
