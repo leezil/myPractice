@@ -368,17 +368,42 @@ async function validateCodeLocally(code, problemId) {
     
     // 빌드 성공 여부 확인
     // "Build succeeded" 또는 "Build FAILED" 메시지 확인
-    const buildSucceeded = allOutput.toLowerCase().includes('build succeeded') || 
-                           (allOutput.toLowerCase().includes('succeeded') && 
-                            !allOutput.toLowerCase().includes('failed') &&
-                            !allOutput.toLowerCase().includes('error'));
-    const hasError = !buildSucceeded && (
-      allOutput.toLowerCase().includes('error') || 
-      allOutput.toLowerCase().includes('build failed') ||
-      allOutput.toLowerCase().includes('failed')
-    );
+    const lowerOutput = allOutput.toLowerCase();
+    const hasBuildSucceeded = lowerOutput.includes('build succeeded') || 
+                              (lowerOutput.includes('succeeded') && 
+                               !lowerOutput.includes('failed') &&
+                               !lowerOutput.includes('error'));
+    // "Build FAILED" 메시지가 명확히 있는 경우만 실패로 판단
+    const hasBuildFailed = lowerOutput.includes('build failed') || 
+                           (lowerOutput.includes('failed') && 
+                            !lowerOutput.includes('succeeded'));
     
-    console.log('[컴파일 검증] buildSucceeded:', buildSucceeded, 'hasError:', hasError);
+    // 실제 컴파일 오류가 있는지 확인 (error 키워드가 있고, 실제 오류 메시지가 있는 경우)
+    const hasErrorKeyword = lowerOutput.includes('error') && 
+                            !lowerOutput.includes('warning'); // warning은 오류가 아님
+    
+    // 실제 컴파일 오류가 있는지 확인 (error 키워드가 있고, 실제 오류 메시지가 있는 경우)
+    const actualErrorLines = allOutput.split('\n')
+      .filter(line => {
+        const lower = line.toLowerCase();
+        return lower.includes('error') && 
+               line.length > 10 && // 실제 오류 메시지가 있는 경우만
+               !lower.includes('determining') &&
+               !lower.includes('restore') &&
+               !lower.includes('up-to-date') &&
+               !lower.includes('welcome') &&
+               !lower.includes('telemetry');
+      });
+    
+    const hasActualError = actualErrorLines.length > 0;
+    
+    // 빌드 성공 여부: "Build succeeded"가 있거나, 실패 메시지가 없고 오류도 없는 경우
+    const buildSucceeded = hasBuildSucceeded || (!hasBuildFailed && !hasActualError);
+    const hasError = hasBuildFailed || hasActualError;
+    
+    console.log('[컴파일 검증] allOutput (처음 500자):', allOutput.substring(0, 500));
+    console.log('[컴파일 검증] hasBuildSucceeded:', hasBuildSucceeded, 'hasBuildFailed:', hasBuildFailed, 'hasActualError:', hasActualError);
+    console.log('[컴파일 검증] 최종 판단 - buildSucceeded:', buildSucceeded, 'hasError:', hasError);
     
     // 임시 디렉토리 삭제
     try {
