@@ -152,13 +152,32 @@ async function checkDotNetSDKAvailableInternal() {
       env.PATH = `${dotnetPath}:${env.PATH || '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'}`;
       env.DOTNET_ROOT = dotnetPath;
       
-      const { stdout } = await execAsync('dotnet --version', { 
-        timeout: 5000,
-        maxBuffer: 1024 * 1024,
-        env: env
-      });
-      console.log('[.NET SDK] 사용 가능 (경로:', dotnetPath, '), 버전:', stdout.trim());
-      return { available: true, version: stdout.trim(), path: dotnetPath };
+      // 먼저 절대 경로로 시도
+      const dotnetExe = path.join(dotnetPath, 'dotnet');
+      let stdout;
+      try {
+        if (fs.existsSync(dotnetExe)) {
+          const result = await execAsync(`"${dotnetExe}" --version`, { 
+            timeout: 5000,
+            maxBuffer: 1024 * 1024,
+            env: env
+          });
+          stdout = result.stdout;
+        } else {
+          // PATH에서 찾기
+          const result = await execAsync('dotnet --version', { 
+            timeout: 5000,
+            maxBuffer: 1024 * 1024,
+            env: env
+          });
+          stdout = result.stdout;
+        }
+        console.log('[.NET SDK] 사용 가능 (경로:', dotnetPath, '), 버전:', stdout.trim());
+        return { available: true, version: stdout.trim(), path: dotnetPath };
+      } catch (e) {
+        console.log('[.NET SDK] 시도 실패 (경로:', dotnetPath, '):', e.message);
+        continue;
+      }
     } catch (e) {
       console.log('[.NET SDK] 시도 실패 (경로:', dotnetPath, '):', e.message);
     }
@@ -191,8 +210,11 @@ async function validateCodeLocally(code, problemId) {
   
   // .NET SDK 경로 찾기 (캐시된 정보 사용)
   let dotnetPath = null;
+  let dotnetExe = 'dotnet'; // 기본값: PATH에서 찾기
+  
   if (dotNetSDKCache && dotNetSDKCache.available && dotNetSDKCache.path) {
     dotnetPath = dotNetSDKCache.path;
+    dotnetExe = path.join(dotnetPath, 'dotnet');
     console.log('[컴파일 검증] 캐시된 .NET SDK 경로 사용:', dotnetPath);
   } else {
     // 캐시가 없으면 다시 찾기
@@ -208,9 +230,10 @@ async function validateCodeLocally(code, problemId) {
     for (const testPath of possiblePaths) {
       if (!testPath) continue;
       try {
-        const dotnetExe = path.join(testPath, 'dotnet');
-        if (fs.existsSync(dotnetExe)) {
+        const testExe = path.join(testPath, 'dotnet');
+        if (fs.existsSync(testExe)) {
           dotnetPath = testPath;
+          dotnetExe = testExe;
           console.log('[컴파일 검증] .NET SDK 경로 발견:', testPath);
           break;
         }
@@ -220,6 +243,7 @@ async function validateCodeLocally(code, problemId) {
     // 경로를 찾지 못했으면 첫 번째 경로 시도
     if (!dotnetPath && possiblePaths[0]) {
       dotnetPath = possiblePaths[0];
+      dotnetExe = path.join(dotnetPath, 'dotnet');
       console.log('[컴파일 검증] .NET SDK 경로 기본값 사용:', dotnetPath);
     }
   }
@@ -248,8 +272,9 @@ async function validateCodeLocally(code, problemId) {
 </Project>`;
     fs.writeFileSync(path.join(projectDir, 'proj.csproj'), csprojContent);
     
-    // dotnet build 실행
-    const { stdout, stderr } = await execAsync('dotnet build', {
+    // dotnet build 실행 (절대 경로 사용)
+    console.log('[컴파일 검증] dotnet 빌드 실행:', dotnetExe);
+    const { stdout, stderr } = await execAsync(`"${dotnetExe}" build`, {
       timeout: 15000,
       maxBuffer: 1024 * 1024,
       cwd: projectDir,
