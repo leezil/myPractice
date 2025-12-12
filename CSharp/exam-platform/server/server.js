@@ -350,16 +350,29 @@ async function validateCodeLocally(code, problemId) {
                       !line.includes('Find out what') &&
                       !line.includes('Explore documentation') &&
                       !line.includes('Report issues') &&
-                      !line.includes('Use \'dotnet --help\''))
+                      !line.includes('Use \'dotnet --help\'') &&
+                      !line.includes('Determining projects to restore') &&
+                      !line.includes('All projects are up-to-date for restore') &&
+                      !line.trim().startsWith('---'))
       .join('\n');
     
     if (stderr && stderr.trim()) {
       console.log('[컴파일 검증] 빌드 stderr:', stderr);
     }
     
-    // 빌드 성공 여부 확인 (오류 메시지가 없으면 성공)
-    const hasError = cleanOutput.toLowerCase().includes('error') || 
-                     (stderr && stderr.toLowerCase().includes('error'));
+    // 빌드 성공 여부 확인
+    // "Build succeeded" 또는 "Build FAILED" 메시지 확인
+    const buildSucceeded = cleanOutput.toLowerCase().includes('build succeeded') || 
+                           (cleanOutput.toLowerCase().includes('succeeded') && 
+                            !cleanOutput.toLowerCase().includes('failed'));
+    const hasError = !buildSucceeded && (
+      cleanOutput.toLowerCase().includes('error') || 
+      cleanOutput.toLowerCase().includes('build failed') ||
+      (stderr && stderr.toLowerCase().includes('error'))
+    );
+    
+    console.log('[컴파일 검증] cleanOutput:', cleanOutput);
+    console.log('[컴파일 검증] buildSucceeded:', buildSucceeded, 'hasError:', hasError);
     
     // 임시 디렉토리 삭제
     try {
@@ -868,32 +881,52 @@ app.post('/api/:subject/problems/:id/submit', async (req, res) => {
     for (let i = 0; i < lines.length; i++) {
       if (lines[i].includes('// 여기에 코드를 작성하세요')) {
         // 사용자 코드 삽입 (인덴트 유지)
-        // 주석 다음 줄(여는 중괄호 다음 줄)의 인덴트 확인
+        // 템플릿 전체를 스캔하여 다른 메소드 본문의 인덴트를 찾기
         let indent = '            '; // 기본 12칸 인덴트
-        let indentCheckIdx = i + 1;
-        // 빈 줄 건너뛰기
-        while (indentCheckIdx < lines.length && lines[indentCheckIdx].trim() === '') {
-          indentCheckIdx++;
-        }
-        // 여는 중괄호 건너뛰기
-        if (indentCheckIdx < lines.length && lines[indentCheckIdx].trim() === '{') {
-          indentCheckIdx++;
-          // 빈 줄 건너뛰기
-          while (indentCheckIdx < lines.length && lines[indentCheckIdx].trim() === '') {
-            indentCheckIdx++;
+        
+        // 템플릿에서 메소드 본문의 인덴트 패턴 찾기
+        // "public" 또는 "private" 등으로 시작하는 메소드 시그니처 다음의 본문 인덴트 확인
+        for (let k = 0; k < lines.length; k++) {
+          const line = lines[k];
+          // 메소드 시그니처 찾기
+          if ((line.includes('public') || line.includes('private') || line.includes('protected') || line.includes('override')) &&
+              line.includes('(') && line.includes(')') && k !== i - 1) {
+            // 다음 줄들에서 메소드 본문 찾기
+            let braceCount = 0;
+            let foundBrace = false;
+            for (let m = k + 1; m < lines.length && m < k + 20; m++) {
+              const methodLine = lines[m];
+              if (methodLine.includes('{')) {
+                foundBrace = true;
+                braceCount = 1;
+              }
+              if (foundBrace) {
+                braceCount += (methodLine.match(/{/g) || []).length;
+                braceCount -= (methodLine.match(/}/g) || []).length;
+                // 메소드 본문 내의 코드 줄 찾기
+                if (braceCount > 0 && methodLine.trim() !== '' && 
+                    !methodLine.includes('{') && !methodLine.includes('}') &&
+                    !methodLine.includes('// 여기에 코드를 작성하세요')) {
+                  const bodyIndentMatch = methodLine.match(/^(\s+)/);
+                  if (bodyIndentMatch && bodyIndentMatch[1].length >= 8) {
+                    indent = bodyIndentMatch[1];
+                    console.log(`[디버그] 인덴트 발견 (줄 ${m}): "${indent}" (${indent.length}칸)`);
+                    break;
+                  }
+                }
+                if (braceCount <= 0) break;
+              }
+            }
+            if (indent !== '            ') break;
           }
         }
-        // 실제 코드가 있는 줄의 인덴트 확인
-        if (indentCheckIdx < lines.length && lines[indentCheckIdx].trim() !== '' && !lines[indentCheckIdx].includes('}')) {
-          const indentMatch = lines[indentCheckIdx].match(/^(\s*)/);
-          if (indentMatch) {
-            indent = indentMatch[1];
-          }
-        } else {
-          // 인덴트를 찾지 못한 경우 주석 줄의 인덴트 + 4칸
+        
+        // 인덴트를 찾지 못한 경우 주석 줄의 인덴트 + 4칸
+        if (indent === '            ') {
           const commentIndentMatch = lines[i].match(/^(\s*)/);
           if (commentIndentMatch) {
             indent = commentIndentMatch[1] + '    '; // 주석 인덴트 + 4칸
+            console.log(`[디버그] 주석 인덴트 사용: "${indent}" (${indent.length}칸)`);
           }
         }
         
