@@ -80,59 +80,92 @@ function getFullCode(problem) {
   return problem.template || '';
 }
 
-// .NET SDK 사용 가능 여부 확인
+// .NET SDK 사용 가능 여부 확인 (캐시 사용)
 async function checkDotNetSDKAvailable() {
+  // 캐시된 결과가 있으면 반환
+  if (dotNetSDKCache !== null) {
+    return dotNetSDKCache;
+  }
+  
+  // 실제 확인 수행
+  const result = await checkDotNetSDKAvailableInternal();
+  dotNetSDKCache = result;
+  return result;
+}
+
+// .NET SDK 사용 가능 여부 확인 (내부 함수)
+async function checkDotNetSDKAvailableInternal() {
   const { exec } = require('child_process');
   const { promisify } = require('util');
+  const fs = require('fs');
+  const path = require('path');
   const execAsync = promisify(exec);
   
-  try {
-    // PATH에 .NET SDK 경로 추가
-    const env = { ...process.env };
-    if (process.env.DOTNET_ROOT) {
-      env.PATH = `${process.env.DOTNET_ROOT}:${env.PATH || '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'}`;
-    } else {
-      // 기본 .NET SDK 경로 시도
-      const homeDir = process.env.HOME || '/home/render';
-      env.PATH = `${homeDir}/.dotnet:${env.PATH || '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'}`;
-    }
-    
-    const { stdout } = await execAsync('dotnet --version', { 
-      timeout: 5000,
-      maxBuffer: 1024 * 1024,
-      env: env
-    });
-    console.log('[.NET SDK] 사용 가능, 버전:', stdout.trim());
-    return { available: true, version: stdout.trim() };
-  } catch (error) {
-    console.log('[.NET SDK] 사용 불가:', error.message);
-    // 여러 경로 시도
-    const possiblePaths = [
-      process.env.DOTNET_ROOT,
-      `${process.env.HOME || '/home/render'}/.dotnet`,
-      '/usr/share/dotnet',
-      '/opt/dotnet'
-    ];
-    
-    for (const dotnetPath of possiblePaths) {
-      if (!dotnetPath) continue;
-      try {
+  // 여러 경로 시도 (우선순위 순)
+  const possiblePaths = [
+    process.env.DOTNET_ROOT,
+    '/opt/render/.dotnet',  // Render 기본 설치 경로
+    `${process.env.HOME || '/home/render'}/.dotnet`,
+    '/usr/share/dotnet',
+    '/opt/dotnet'
+  ];
+  
+  console.log('[.NET SDK 확인 시작]');
+  console.log('[환경변수 DOTNET_ROOT]:', process.env.DOTNET_ROOT);
+  console.log('[환경변수 PATH]:', process.env.PATH);
+  
+  // 먼저 dotnet 실행 파일이 실제로 존재하는지 확인
+  for (const dotnetPath of possiblePaths) {
+    if (!dotnetPath) continue;
+    try {
+      const dotnetExe = path.join(dotnetPath, 'dotnet');
+      if (fs.existsSync(dotnetExe)) {
+        console.log('[.NET SDK 실행 파일 발견]', dotnetExe);
         const env = { ...process.env };
         env.PATH = `${dotnetPath}:${env.PATH || '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'}`;
-        const { stdout } = await execAsync('dotnet --version', { 
-          timeout: 5000,
-          maxBuffer: 1024 * 1024,
-          env: env
-        });
-        console.log('[.NET SDK] 사용 가능 (경로:', dotnetPath, '), 버전:', stdout.trim());
-        return { available: true, version: stdout.trim() };
-      } catch (e) {
-        // 다음 경로 시도
+        env.DOTNET_ROOT = dotnetPath;
+        
+        try {
+          const { stdout } = await execAsync('dotnet --version', { 
+            timeout: 5000,
+            maxBuffer: 1024 * 1024,
+            env: env
+          });
+          console.log('[.NET SDK] 사용 가능 (경로:', dotnetPath, '), 버전:', stdout.trim());
+          return { available: true, version: stdout.trim(), path: dotnetPath };
+        } catch (e) {
+          console.log('[.NET SDK] 실행 실패 (경로:', dotnetPath, '):', e.message);
+          continue;
+        }
       }
+    } catch (e) {
+      // 다음 경로 시도
     }
-    
-    return { available: false };
   }
+  
+  // 실행 파일을 찾지 못했으면 PATH에 추가해서 시도
+  console.log('[.NET SDK] 실행 파일을 찾지 못함, PATH에 추가해서 시도');
+  for (const dotnetPath of possiblePaths) {
+    if (!dotnetPath) continue;
+    try {
+      const env = { ...process.env };
+      env.PATH = `${dotnetPath}:${env.PATH || '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'}`;
+      env.DOTNET_ROOT = dotnetPath;
+      
+      const { stdout } = await execAsync('dotnet --version', { 
+        timeout: 5000,
+        maxBuffer: 1024 * 1024,
+        env: env
+      });
+      console.log('[.NET SDK] 사용 가능 (경로:', dotnetPath, '), 버전:', stdout.trim());
+      return { available: true, version: stdout.trim(), path: dotnetPath };
+    } catch (e) {
+      console.log('[.NET SDK] 시도 실패 (경로:', dotnetPath, '):', e.message);
+    }
+  }
+  
+  console.log('[.NET SDK] 사용 불가 - 모든 경로 시도 실패');
+  return { available: false };
 }
 
 async function checkDockerAvailable() {
@@ -156,23 +189,39 @@ async function validateCodeLocally(code, problemId) {
   const projectDir = path.join(tempDir, `proj_${timestamp}`);
   const csFile = path.join(projectDir, 'Program.cs');
   
-  // .NET SDK 경로 찾기
+  // .NET SDK 경로 찾기 (캐시된 정보 사용)
   let dotnetPath = null;
-  const possiblePaths = [
-    process.env.DOTNET_ROOT,
-    `${process.env.HOME || '/home/render'}/.dotnet`,
-    '/usr/share/dotnet',
-    '/opt/dotnet'
-  ];
-  
-  for (const testPath of possiblePaths) {
-    if (!testPath) continue;
-    try {
-      if (fs.existsSync(testPath) || testPath.includes('HOME')) {
-        dotnetPath = testPath;
-        break;
-      }
-    } catch (e) {}
+  if (dotNetSDKCache && dotNetSDKCache.available && dotNetSDKCache.path) {
+    dotnetPath = dotNetSDKCache.path;
+    console.log('[컴파일 검증] 캐시된 .NET SDK 경로 사용:', dotnetPath);
+  } else {
+    // 캐시가 없으면 다시 찾기
+    const possiblePaths = [
+      process.env.DOTNET_ROOT,
+      '/opt/render/.dotnet',  // Render 기본 설치 경로
+      `${process.env.HOME || '/home/render'}/.dotnet`,
+      '/usr/share/dotnet',
+      '/opt/dotnet'
+    ];
+    
+    // 실제 dotnet 실행 파일이 있는지 확인
+    for (const testPath of possiblePaths) {
+      if (!testPath) continue;
+      try {
+        const dotnetExe = path.join(testPath, 'dotnet');
+        if (fs.existsSync(dotnetExe)) {
+          dotnetPath = testPath;
+          console.log('[컴파일 검증] .NET SDK 경로 발견:', testPath);
+          break;
+        }
+      } catch (e) {}
+    }
+    
+    // 경로를 찾지 못했으면 첫 번째 경로 시도
+    if (!dotnetPath && possiblePaths[0]) {
+      dotnetPath = possiblePaths[0];
+      console.log('[컴파일 검증] .NET SDK 경로 기본값 사용:', dotnetPath);
+    }
   }
   
   // 환경변수 설정
@@ -242,6 +291,9 @@ async function validateCodeInDocker(code, problemId) {
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// .NET SDK 정보 캐시
+let dotNetSDKCache = null;
 
 // 미들웨어 설정
 app.use(cors());
@@ -1003,6 +1055,17 @@ if (fs.existsSync(buildPath)) {
     `);
   });
 }
+
+// 서버 시작 시 .NET SDK 확인
+(async () => {
+  console.log('[서버 시작] .NET SDK 확인 중...');
+  const dotNetInfo = await checkDotNetSDKAvailable();
+  if (dotNetInfo.available) {
+    console.log('[서버 시작] .NET SDK 사용 가능:', dotNetInfo.version, '(경로:', dotNetInfo.path || 'N/A', ')');
+  } else {
+    console.log('[서버 시작] .NET SDK 사용 불가 - 문자열 비교로 검증합니다.');
+  }
+})();
 
 app.listen(PORT, () => {
   console.log(`서버가 포트 ${PORT}에서 실행 중입니다.`);
