@@ -303,6 +303,7 @@ async function validateCodeLocally(code, problemId) {
     fs.mkdirSync(projectDir, { recursive: true });
     
     // 코드를 Program.cs에 저장
+    console.log('[컴파일 검증] 저장할 코드 (처음 1000자):\n' + code.substring(0, 1000));
     fs.writeFileSync(csFile, code, 'utf-8');
     
     // .csproj 파일 생성
@@ -317,12 +318,17 @@ async function validateCodeLocally(code, problemId) {
     
     // dotnet build 실행 (절대 경로 사용)
     console.log('[컴파일 검증] dotnet 빌드 실행:', dotnetExe);
+    console.log('[컴파일 검증] 컴파일할 코드 (처음 1000자):\n' + code.substring(0, 1000));
     const { stdout, stderr } = await execAsync(`"${dotnetExe}" build`, {
       timeout: 15000,
       maxBuffer: 1024 * 1024,
       cwd: projectDir,
       env: env
     });
+    
+    if (stderr && stderr.trim()) {
+      console.log('[컴파일 검증] 빌드 stderr:', stderr);
+    }
     
     // 임시 디렉토리 삭제
     try {
@@ -341,7 +347,20 @@ async function validateCodeLocally(code, problemId) {
     }
     
     const errorMessage = error.stderr || error.stdout || error.message;
-    console.log('[컴파일 검증 실패]', errorMessage.substring(0, 500));
+    console.log('[컴파일 검증 실패] 전체 오류 메시지:');
+    console.log('stdout:', error.stdout || '없음');
+    console.log('stderr:', error.stderr || '없음');
+    console.log('message:', error.message || '없음');
+    
+    // 오류가 발생한 코드도 파일로 저장
+    const errorDebugDir = path.join(__dirname, 'debug-output');
+    if (!fs.existsSync(errorDebugDir)) {
+      fs.mkdirSync(errorDebugDir, { recursive: true });
+    }
+    const errorDebugFile = path.join(errorDebugDir, `error_${problemId}_${Date.now()}.cs`);
+    fs.writeFileSync(errorDebugFile, code, 'utf-8');
+    console.log(`[컴파일 검증 실패] 오류 발생 코드 저장: ${errorDebugFile}`);
+    
     return { 
       success: false, 
       compiled: false, 
@@ -821,10 +840,18 @@ app.post('/api/:subject/problems/:id/submit', async (req, res) => {
     }
     userFullCode = result.join('\n');
     
-    // 디버깅: 생성된 코드 확인
-    console.log(`[메소드 문제] 사용자 입력 원본: ${code.substring(0, 200)}`);
-    console.log(`[메소드 문제] 추출된 본문: ${userCodeLines.join('\n').substring(0, 200)}`);
-    console.log(`[메소드 문제] 생성된 전체 코드 (처음 500자):\n${userFullCode.substring(0, 500)}`);
+    // 디버깅: 생성된 코드 확인 및 파일 저장
+    const debugDir = path.join(__dirname, 'debug-output');
+    if (!fs.existsSync(debugDir)) {
+      fs.mkdirSync(debugDir, { recursive: true });
+    }
+    const debugFile = path.join(debugDir, `method_${problem.id}_${Date.now()}.cs`);
+    fs.writeFileSync(debugFile, userFullCode, 'utf-8');
+    
+    console.log(`[메소드 문제] 사용자 입력 원본:\n${code}`);
+    console.log(`[메소드 문제] 추출된 본문:\n${userCodeLines.join('\n')}`);
+    console.log(`[메소드 문제] 생성된 전체 코드 저장: ${debugFile}`);
+    console.log(`[메소드 문제] 생성된 전체 코드:\n${userFullCode}`);
     
     // 사용자가 입력한 코드 부분 저장 (정답 비교용) - 본문만
     userCode = userCodeLines.join('\n');
@@ -1015,12 +1042,15 @@ app.post('/api/:subject/problems/:id/submit', async (req, res) => {
 
     // 디버깅: 컴파일 결과 확인
     if (!compileResult.success) {
-      console.log(`[디버그] 컴파일 실패 - 문제 ID: ${problem.id}`);
+      console.log(`[디버그] 컴파일 실패 - 문제 ID: ${problem.id}, 타입: ${problem.type}`);
       console.log(`[디버그] 생성된 코드 길이: ${userFullCode.length}`);
-      console.log(`[디버그] 컴파일 오류 (처음 2000자):\n${compileResult.stdout.substring(0, 2000)}`);
+      console.log(`[디버그] 생성된 전체 코드:\n${userFullCode}`);
+      console.log(`[디버그] 컴파일 오류 stdout (처음 2000자):\n${compileResult.stdout.substring(0, 2000)}`);
       if (compileResult.stderr) {
-        console.log(`[디버그] stderr:\n${compileResult.stderr.substring(0, 1000)}`);
+        console.log(`[디버그] 컴파일 오류 stderr (처음 2000자):\n${compileResult.stderr.substring(0, 2000)}`);
       }
+    } else {
+      console.log(`[디버그] 컴파일 성공 - 문제 ID: ${problem.id}, 타입: ${problem.type}`);
     }
 
     // 컴파일 실패 시에도 사용자 입력 부분만 정답과 비교
