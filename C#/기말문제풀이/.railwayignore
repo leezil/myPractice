@@ -1,0 +1,13 @@
+# Railway 배포 시 제외할 파일/폴더
+node_modules/
+.env
+.env.local
+*.log
+.DS_Store
+.vscode/
+.idea/
+client/node_modules/
+부모교육/
+.git/
+
+

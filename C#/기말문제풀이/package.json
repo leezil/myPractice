@@ -1,0 +1,20 @@
+{
+  "name": "csharp-exam-platform",
+  "version": "1.0.0",
+  "description": "C# 프로그래밍 시험 준비 웹사이트",
+  "main": "server/server.js",
+  "scripts": {
+    "dev": "npm run build && npm start",
+    "build": "cd client && npm run build",
+    "start": "node server/server.js",
+    "install-all": "npm install && cd client && npm install && cd ../server && npm install"
+  },
+  "keywords": ["csharp", "exam", "coding"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
+
+
