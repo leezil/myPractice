@@ -87,13 +87,50 @@ async function checkDotNetSDKAvailable() {
   const execAsync = promisify(exec);
   
   try {
+    // PATH에 .NET SDK 경로 추가
+    const env = { ...process.env };
+    if (process.env.DOTNET_ROOT) {
+      env.PATH = `${process.env.DOTNET_ROOT}:${env.PATH || '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'}`};
+    } else {
+      // 기본 .NET SDK 경로 시도
+      const homeDir = process.env.HOME || '/home/render';
+      env.PATH = `${homeDir}/.dotnet:${env.PATH || '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'}`;
+    }
+    
     const { stdout } = await execAsync('dotnet --version', { 
       timeout: 5000,
-      maxBuffer: 1024 * 1024
+      maxBuffer: 1024 * 1024,
+      env: env
     });
+    console.log('[.NET SDK] 사용 가능, 버전:', stdout.trim());
     return { available: true, version: stdout.trim() };
   } catch (error) {
     console.log('[.NET SDK] 사용 불가:', error.message);
+    // 여러 경로 시도
+    const possiblePaths = [
+      process.env.DOTNET_ROOT,
+      `${process.env.HOME || '/home/render'}/.dotnet`,
+      '/usr/share/dotnet',
+      '/opt/dotnet'
+    ];
+    
+    for (const dotnetPath of possiblePaths) {
+      if (!dotnetPath) continue;
+      try {
+        const env = { ...process.env };
+        env.PATH = `${dotnetPath}:${env.PATH || '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'}`;
+        const { stdout } = await execAsync('dotnet --version', { 
+          timeout: 5000,
+          maxBuffer: 1024 * 1024,
+          env: env
+        });
+        console.log('[.NET SDK] 사용 가능 (경로:', dotnetPath, '), 버전:', stdout.trim());
+        return { available: true, version: stdout.trim() };
+      } catch (e) {
+        // 다음 경로 시도
+      }
+    }
+    
     return { available: false };
   }
 }
@@ -119,6 +156,32 @@ async function validateCodeLocally(code, problemId) {
   const projectDir = path.join(tempDir, `proj_${timestamp}`);
   const csFile = path.join(projectDir, 'Program.cs');
   
+  // .NET SDK 경로 찾기
+  let dotnetPath = null;
+  const possiblePaths = [
+    process.env.DOTNET_ROOT,
+    `${process.env.HOME || '/home/render'}/.dotnet`,
+    '/usr/share/dotnet',
+    '/opt/dotnet'
+  ];
+  
+  for (const testPath of possiblePaths) {
+    if (!testPath) continue;
+    try {
+      if (fs.existsSync(testPath) || testPath.includes('HOME')) {
+        dotnetPath = testPath;
+        break;
+      }
+    } catch (e) {}
+  }
+  
+  // 환경변수 설정
+  const env = { ...process.env };
+  if (dotnetPath) {
+    env.PATH = `${dotnetPath}:${env.PATH || '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'}`;
+    env.DOTNET_ROOT = dotnetPath;
+  }
+  
   try {
     // 프로젝트 디렉토리 생성
     fs.mkdirSync(projectDir, { recursive: true });
@@ -140,7 +203,8 @@ async function validateCodeLocally(code, problemId) {
     const { stdout, stderr } = await execAsync('dotnet build', {
       timeout: 15000,
       maxBuffer: 1024 * 1024,
-      cwd: projectDir
+      cwd: projectDir,
+      env: env
     });
     
     // 임시 디렉토리 삭제
@@ -160,6 +224,7 @@ async function validateCodeLocally(code, problemId) {
     }
     
     const errorMessage = error.stderr || error.stdout || error.message;
+    console.log('[컴파일 검증 실패]', errorMessage.substring(0, 500));
     return { 
       success: false, 
       compiled: false, 
