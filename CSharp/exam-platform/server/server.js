@@ -60,6 +60,49 @@ function extractClassDefinition(template) {
   return classCode.trim();
 }
 
+// 메소드 시그니처 추출 함수 (메소드 만들기 문제용)
+function extractMethodSignature(template) {
+  if (!template) return null;
+  
+  const lines = template.split('\n');
+  
+  // "// 여기에 코드를 작성하세요" 주석이 있는 줄 찾기
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].includes('// 여기에 코드를 작성하세요')) {
+      // 이전 줄들에서 메소드 시그니처 찾기
+      for (let j = i - 1; j >= 0; j--) {
+        const line = lines[j].trim();
+        // 메소드 시그니처 패턴: public/private/protected + 반환타입 + 메소드명 + (매개변수)
+        if (line.includes('(') && line.includes(')') && 
+            (line.includes('public') || line.includes('private') || line.includes('protected') || line.includes('internal'))) {
+          // 메소드 시그니처와 여는 중괄호까지 포함
+          let methodSignature = line;
+          
+          // 다음 줄이 여는 중괄호인지 확인
+          if (i + 1 < lines.length && lines[i + 1].trim() === '{') {
+            methodSignature += '\n' + lines[i + 1];
+          } else if (line.endsWith('{')) {
+            // 시그니처와 같은 줄에 중괄호가 있는 경우
+            methodSignature = line;
+          } else {
+            // 중괄호가 없으면 추가
+            methodSignature += '\n{';
+          }
+          
+          // 주석 추가
+          methodSignature += '\n  // 여기에 코드를 작성하세요';
+          methodSignature += '\n}';
+          
+          return methodSignature;
+        }
+      }
+      break;
+    }
+  }
+  
+  return null;
+}
+
 // 간단한 코드 추출 함수 (extractCodeParts 대체)
 function extractCodeToWrite(problem) {
   if (problem.codeToWrite) {
@@ -392,13 +435,23 @@ app.get('/api/:subject/problems/:id', (req, res) => {
     }
   }
   
+  // 메소드 만들기 문제의 경우 특별 처리
+  if (problem.type === 'method') {
+    // 전체 코드 섹션: 전체 template 표시
+    // 코드 작성 칸: 메소드 시그니처만 표시
+    const methodSignature = extractMethodSignature(problem.template);
+    if (methodSignature) {
+      codeToWrite = methodSignature;
+    }
+  }
+  
   // 정답은 별도로 전달 (정답 보기 버튼용)
   // 전체 코드 섹션: 완전한 예제 코드 (보기용)
   // 코드 작성 칸: 작성할 부분만 (작성용)
   res.json({
     ...problem,
-    fullCode: problem.type === 'class' ? problem.template : codeToWrite, // 클래스 문제는 전체 template, 아니면 작성할 부분
-    codeToWrite: problem.type === 'class' ? codeToWrite : fullCode // 클래스 문제는 클래스 정의만, 아니면 전체 코드
+    fullCode: (problem.type === 'class' || problem.type === 'method') ? problem.template : codeToWrite, // 클래스/메소드 문제는 전체 template, 아니면 작성할 부분
+    codeToWrite: (problem.type === 'class' || problem.type === 'method') ? codeToWrite : fullCode // 클래스/메소드 문제는 정의만, 아니면 전체 코드
     // answer는 포함되어 있지만, 프론트엔드에서 정답 보기 버튼을 눌렀을 때만 표시
   });
 });
@@ -626,7 +679,7 @@ app.post('/api/:subject/problems/:id/submit', async (req, res) => {
     console.log(`[디버그] template 변수명: ${templateVariableName || '없음'}`);
     console.log(`[디버그] 생성된 전체 코드 (처음 500자):\n${userFullCode.substring(0, 500)}`);
   } else if (problem.type === 'method') {
-    // 메서드 만들기: // 여기에 코드를 작성하세요 부분을 사용자 코드로 대체
+    // 메서드 만들기: 사용자가 입력한 메소드(시그니처 포함 또는 본문만)를 템플릿에 삽입
     const lines = problem.template.split('\n');
     const result = [];
     let skipUntilBrace = false;
@@ -639,9 +692,11 @@ app.post('/api/:subject/problems/:id/submit', async (req, res) => {
     
     // 템플릿에서 메소드 시그니처 찾기 (매개변수 이름 추출용)
     let templateMethodSignature = null;
+    let templateMethodStartIndex = -1;
     let templateParams = [];
     for (let i = 0; i < lines.length; i++) {
       if (lines[i].includes('// 여기에 코드를 작성하세요')) {
+        templateMethodStartIndex = i;
         // 이전 줄에서 메소드 시그니처 찾기
         for (let j = i - 1; j >= 0; j--) {
           const prevLine = lines[j].trim();
@@ -663,41 +718,43 @@ app.post('/api/:subject/problems/:id/submit', async (req, res) => {
       }
     }
     
-    // 사용자 입력에서 메소드 본문만 추출 (시그니처 제거)
+    // 사용자 입력에서 메소드 본문만 추출
     let userMethodBody = userCodeLines.join('\n');
+    let userMethodSignature = null;
     
-    // 사용자 입력에 메소드 시그니처가 포함되어 있으면 제거
-    if (userMethodBody.includes('{') && userMethodBody.includes('}')) {
-      // 첫 번째 { 부터 마지막 } 까지가 본문
+    // 사용자 입력에 메소드 시그니처가 포함되어 있는지 확인
+    const userCodeStr = userCodeLines.join('\n');
+    const hasMethodSignature = userCodeStr.includes('(') && userCodeStr.includes(')') && 
+                               (userCodeStr.includes('public') || userCodeStr.includes('private') || 
+                                userCodeStr.includes('protected') || userCodeStr.includes('internal'));
+    
+    if (hasMethodSignature && userMethodBody.includes('{') && userMethodBody.includes('}')) {
+      // 메소드 시그니처가 포함된 경우: 본문만 추출
       const firstBrace = userMethodBody.indexOf('{');
       const lastBrace = userMethodBody.lastIndexOf('}');
       if (firstBrace !== -1 && lastBrace !== -1 && firstBrace < lastBrace) {
         userMethodBody = userMethodBody.substring(firstBrace + 1, lastBrace).trim();
-      }
-    }
-    
-    // 사용자 입력에서 매개변수 이름 추출 및 템플릿 매개변수로 변경
-    if (templateParams.length > 0 && userCodeLines.length > 0) {
-      const userCodeStr = userCodeLines.join('\n');
-      // 사용자 입력에서 매개변수 선언 찾기: public Point(int xzc, int yzc)
-      const userParamMatch = userCodeStr.match(/\(([^)]+)\)/);
-      if (userParamMatch) {
-        const userParamsStr = userParamMatch[1];
-        const userParams = userParamsStr.split(',').map(p => {
-          const paramParts = p.trim().split(/\s+/);
-          return paramParts[paramParts.length - 1];
-        }).filter(p => p);
         
-        // 매개변수 이름 매핑 및 변경
-        if (userParams.length === templateParams.length) {
-          for (let i = 0; i < userParams.length; i++) {
-            const userParam = userParams[i];
-            const templateParam = templateParams[i];
-            if (userParam !== templateParam) {
-              // 사용자 매개변수 이름을 템플릿 매개변수 이름으로 변경
-              const regex = new RegExp(`\\b${userParam}\\b`, 'g');
-              userMethodBody = userMethodBody.replace(regex, templateParam);
-              console.log(`[디버그] 메소드 매개변수 변경: ${userParam} -> ${templateParam}`);
+        // 사용자 입력에서 매개변수 이름 추출
+        const userParamMatch = userCodeStr.match(/\(([^)]+)\)/);
+        if (userParamMatch) {
+          const userParamsStr = userParamMatch[1];
+          const userParams = userParamsStr.split(',').map(p => {
+            const paramParts = p.trim().split(/\s+/);
+            return paramParts[paramParts.length - 1];
+          }).filter(p => p);
+          
+          // 매개변수 이름 매핑 및 변경
+          if (userParams.length === templateParams.length) {
+            for (let i = 0; i < userParams.length; i++) {
+              const userParam = userParams[i];
+              const templateParam = templateParams[i];
+              if (userParam !== templateParam) {
+                // 사용자 매개변수 이름을 템플릿 매개변수 이름으로 변경
+                const regex = new RegExp(`\\b${userParam}\\b`, 'g');
+                userMethodBody = userMethodBody.replace(regex, templateParam);
+                console.log(`[디버그] 메소드 매개변수 변경: ${userParam} -> ${templateParam}`);
+              }
             }
           }
         }
@@ -707,6 +764,7 @@ app.post('/api/:subject/problems/:id/submit', async (req, res) => {
     // 본문을 다시 줄 단위로 분할
     userCodeLines = userMethodBody.split('\n').filter(l => l.trim() !== '');
     
+    // 템플릿에 사용자 코드 삽입
     for (let i = 0; i < lines.length; i++) {
       if (lines[i].includes('// 여기에 코드를 작성하세요')) {
         result.push(...userCodeLines);
@@ -728,18 +786,86 @@ app.post('/api/:subject/problems/:id/submit', async (req, res) => {
     // 사용자가 입력한 코드 부분 저장 (정답 비교용) - 본문만
     userCode = userCodeLines.join('\n');
   } else if (problem.type === 'class') {
-    // 클래스 만들기: // 여기에 클래스를 완성하세요 부분을 사용자 코드로 대체
+    // 클래스 만들기: 사용자가 입력한 클래스 정의(전체 또는 본문만)를 템플릿에 삽입
     const lines = problem.template.split('\n');
     const result = [];
     let inClass = false;
     let classBraceCount = 0;
-    let userCodeLines = code.split('\n');
+    let userCodeLines = code.split('\n').filter(l => l.trim() !== '');
     
     // 사용자가 입력한 코드에서 주석 제거
     userCodeLines = userCodeLines.filter(line => 
       !line.includes('// 여기에 클래스를 완성하세요')
     );
     
+    // 템플릿에서 클래스 시작 위치 찾기
+    let templateClassStartIndex = -1;
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].includes('// 여기에 클래스를 완성하세요')) {
+        templateClassStartIndex = i;
+        break;
+      }
+    }
+    
+    // 사용자 입력이 클래스 정의 전체인지 본문만인지 확인
+    const userCodeStr = userCodeLines.join('\n');
+    const hasClassKeyword = userCodeStr.includes('class ') && !userCodeStr.includes('Program');
+    
+    let userClassBody = '';
+    
+    if (hasClassKeyword) {
+      // 클래스 정의 전체가 입력된 경우: 클래스 본문만 추출
+      // "class " 로 시작하는 줄 찾기
+      let classStartIndex = -1;
+      for (let i = 0; i < userCodeLines.length; i++) {
+        const trimmed = userCodeLines[i].trim();
+        if (trimmed.startsWith('class ') && !trimmed.includes('Program')) {
+          classStartIndex = i;
+          break;
+        }
+      }
+      
+      if (classStartIndex !== -1) {
+        // 클래스 본문 추출 (첫 번째 { 다음부터 마지막 } 전까지)
+        let braceCount = 0;
+        let foundFirstBrace = false;
+        let bodyStartIndex = -1;
+        let bodyEndIndex = -1;
+        
+        for (let i = classStartIndex; i < userCodeLines.length; i++) {
+          const line = userCodeLines[i];
+          if (!foundFirstBrace && line.includes('{')) {
+            foundFirstBrace = true;
+            bodyStartIndex = i + 1; // { 다음 줄부터
+            braceCount = 1;
+          } else if (foundFirstBrace) {
+            braceCount += (line.match(/{/g) || []).length;
+            braceCount -= (line.match(/}/g) || []).length;
+            if (braceCount <= 0 && line.includes('}')) {
+              bodyEndIndex = i; // } 포함하지 않음
+              break;
+            }
+          }
+        }
+        
+        if (bodyStartIndex !== -1 && bodyEndIndex !== -1) {
+          userClassBody = userCodeLines.slice(bodyStartIndex, bodyEndIndex).join('\n');
+        } else {
+          // 본문 추출 실패 시 전체 사용
+          userClassBody = userCodeStr;
+        }
+      } else {
+        userClassBody = userCodeStr;
+      }
+    } else {
+      // 클래스 본문만 입력된 경우
+      userClassBody = userCodeStr;
+    }
+    
+    // 본문을 다시 줄 단위로 분할
+    userCodeLines = userClassBody.split('\n').filter(l => l.trim() !== '');
+    
+    // 템플릿에 사용자 코드 삽입
     for (let i = 0; i < lines.length; i++) {
       if (lines[i].includes('// 여기에 클래스를 완성하세요')) {
         result.push(...userCodeLines);
@@ -763,7 +889,7 @@ app.post('/api/:subject/problems/:id/submit', async (req, res) => {
     }
     userFullCode = result.join('\n');
     
-    // 사용자가 입력한 코드 부분 저장 (정답 비교용)
+    // 사용자가 입력한 코드 부분 저장 (정답 비교용) - 본문만
     userCode = userCodeLines.join('\n');
   } else if (problem.type === 'full') {
     // 전체 코드 작성: // 여기에 전체 코드를 작성하세요 부분을 사용자 코드로 대체
