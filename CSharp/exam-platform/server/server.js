@@ -321,8 +321,19 @@ async function validateCodeLocally(code, problemId) {
     console.log('[컴파일 검증] 컴파일할 코드 (처음 1000자):\n' + code.substring(0, 1000));
     // DOTNET_CLI_TELEMETRY_OPTOUT 환경변수 설정하여 welcome 메시지 제거
     env.DOTNET_CLI_TELEMETRY_OPTOUT = '1';
+    // 먼저 NuGet 패키지 복원
+    try {
+      await execAsync(`"${dotnetExe}" restore`, {
+        timeout: 10000,
+        maxBuffer: 1024 * 1024 * 10,
+        cwd: projectDir,
+        env: env
+      });
+    } catch (restoreError) {
+      console.log('[컴파일 검증] restore 실패 (무시하고 계속):', restoreError.message);
+    }
     // stderr도 stdout으로 리다이렉트하여 모든 출력 확인
-    const { stdout, stderr } = await execAsync(`"${dotnetExe}" build --no-restore 2>&1`, {
+    const { stdout, stderr } = await execAsync(`"${dotnetExe}" build 2>&1`, {
       timeout: 15000,
       maxBuffer: 1024 * 1024 * 10, // 10MB 버퍼 증가
       cwd: projectDir,
@@ -857,8 +868,35 @@ app.post('/api/:subject/problems/:id/submit', async (req, res) => {
     for (let i = 0; i < lines.length; i++) {
       if (lines[i].includes('// 여기에 코드를 작성하세요')) {
         // 사용자 코드 삽입 (인덴트 유지)
-        const indentMatch = lines[i].match(/^(\s*)/);
-        const indent = indentMatch ? indentMatch[1] : '        '; // 기본 8칸 인덴트
+        // 주석 다음 줄(여는 중괄호 다음 줄)의 인덴트 확인
+        let indent = '            '; // 기본 12칸 인덴트
+        let indentCheckIdx = i + 1;
+        // 빈 줄 건너뛰기
+        while (indentCheckIdx < lines.length && lines[indentCheckIdx].trim() === '') {
+          indentCheckIdx++;
+        }
+        // 여는 중괄호 건너뛰기
+        if (indentCheckIdx < lines.length && lines[indentCheckIdx].trim() === '{') {
+          indentCheckIdx++;
+          // 빈 줄 건너뛰기
+          while (indentCheckIdx < lines.length && lines[indentCheckIdx].trim() === '') {
+            indentCheckIdx++;
+          }
+        }
+        // 실제 코드가 있는 줄의 인덴트 확인
+        if (indentCheckIdx < lines.length && lines[indentCheckIdx].trim() !== '' && !lines[indentCheckIdx].includes('}')) {
+          const indentMatch = lines[indentCheckIdx].match(/^(\s*)/);
+          if (indentMatch) {
+            indent = indentMatch[1];
+          }
+        } else {
+          // 인덴트를 찾지 못한 경우 주석 줄의 인덴트 + 4칸
+          const commentIndentMatch = lines[i].match(/^(\s*)/);
+          if (commentIndentMatch) {
+            indent = commentIndentMatch[1] + '    '; // 주석 인덴트 + 4칸
+          }
+        }
+        
         const indentedUserCode = userCodeLines.map(line => {
           // 빈 줄이면 그대로 유지
           if (line.trim() === '') return line;
