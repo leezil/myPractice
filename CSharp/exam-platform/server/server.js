@@ -726,14 +726,44 @@ app.post('/api/:subject/problems/:id/submit', async (req, res) => {
     const userCodeStr = userCodeLines.join('\n');
     const hasMethodSignature = userCodeStr.includes('(') && userCodeStr.includes(')') && 
                                (userCodeStr.includes('public') || userCodeStr.includes('private') || 
-                                userCodeStr.includes('protected') || userCodeStr.includes('internal'));
+                                userCodeStr.includes('protected') || userCodeStr.includes('internal') ||
+                                userCodeStr.includes('override'));
     
     if (hasMethodSignature && userMethodBody.includes('{') && userMethodBody.includes('}')) {
       // 메소드 시그니처가 포함된 경우: 본문만 추출
       const firstBrace = userMethodBody.indexOf('{');
       const lastBrace = userMethodBody.lastIndexOf('}');
       if (firstBrace !== -1 && lastBrace !== -1 && firstBrace < lastBrace) {
-        userMethodBody = userMethodBody.substring(firstBrace + 1, lastBrace).trim();
+        // 중괄호 안의 내용만 추출 (인덴트 제거)
+        let extractedBody = userMethodBody.substring(firstBrace + 1, lastBrace);
+        
+        // 앞뒤 공백 제거
+        extractedBody = extractedBody.trim();
+        
+        // 각 줄의 앞쪽 공통 인덴트 제거 (최소 인덴트 기준)
+        const bodyLines = extractedBody.split('\n');
+        if (bodyLines.length > 0) {
+          // 빈 줄이 아닌 첫 번째 줄의 인덴트 찾기
+          let minIndent = Infinity;
+          for (const line of bodyLines) {
+            if (line.trim() !== '') {
+              const indent = line.match(/^(\s*)/)[1].length;
+              if (indent < minIndent) {
+                minIndent = indent;
+              }
+            }
+          }
+          
+          // 공통 인덴트 제거
+          if (minIndent > 0 && minIndent < Infinity) {
+            extractedBody = bodyLines.map(line => {
+              if (line.trim() === '') return line;
+              return line.substring(minIndent);
+            }).join('\n');
+          }
+        }
+        
+        userMethodBody = extractedBody;
         
         // 사용자 입력에서 매개변수 이름 추출
         const userParamMatch = userCodeStr.match(/\(([^)]+)\)/);
@@ -767,7 +797,15 @@ app.post('/api/:subject/problems/:id/submit', async (req, res) => {
     // 템플릿에 사용자 코드 삽입
     for (let i = 0; i < lines.length; i++) {
       if (lines[i].includes('// 여기에 코드를 작성하세요')) {
-        result.push(...userCodeLines);
+        // 사용자 코드 삽입 (인덴트 유지)
+        const indent = lines[i].match(/^(\s*)/)[1]; // 주석 줄의 인덴트 가져오기
+        const indentedUserCode = userCodeLines.map(line => {
+          // 빈 줄이면 그대로 유지
+          if (line.trim() === '') return line;
+          // 인덴트 추가
+          return indent + line;
+        });
+        result.push(...indentedUserCode);
         skipUntilBrace = true;
         let j = i + 1;
         while (j < lines.length && lines[j].trim() === '') {
@@ -782,6 +820,11 @@ app.post('/api/:subject/problems/:id/submit', async (req, res) => {
       }
     }
     userFullCode = result.join('\n');
+    
+    // 디버깅: 생성된 코드 확인
+    console.log(`[메소드 문제] 사용자 입력 원본: ${code.substring(0, 200)}`);
+    console.log(`[메소드 문제] 추출된 본문: ${userCodeLines.join('\n').substring(0, 200)}`);
+    console.log(`[메소드 문제] 생성된 전체 코드 (처음 500자):\n${userFullCode.substring(0, 500)}`);
     
     // 사용자가 입력한 코드 부분 저장 (정답 비교용) - 본문만
     userCode = userCodeLines.join('\n');
