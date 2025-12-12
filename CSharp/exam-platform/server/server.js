@@ -90,7 +90,7 @@ async function checkDotNetSDKAvailable() {
     // PATH에 .NET SDK 경로 추가
     const env = { ...process.env };
     if (process.env.DOTNET_ROOT) {
-      env.PATH = `${process.env.DOTNET_ROOT}:${env.PATH || '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'}`};
+      env.PATH = `${process.env.DOTNET_ROOT}:${env.PATH || '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'}`;
     } else {
       // 기본 .NET SDK 경로 시도
       const homeDir = process.env.HOME || '/home/render';
