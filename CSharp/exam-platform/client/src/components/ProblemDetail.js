@@ -249,7 +249,7 @@ function ProblemDetail() {
             )}
             
             {/* 예제 코드 표시 (전체 코드 작성 문제 또는 Program 클래스 작성 문제인 경우) */}
-            {problem.exampleCode && (problem.type === 'full' || problem.type === 'class') && (
+            {problem.exampleCode && (problem.type === 'full' || problem.type === 'full2' || problem.type === 'class') && (
               <div className="example-section">
                 <h4>실행 예제</h4>
                 <div className="example-content">
@@ -316,7 +316,7 @@ function ProblemDetail() {
           ) : (
             <div className="editor-container">
               <Editor
-                height={problem?.type === 'full' ? "800px" : "500px"}
+                height={problem?.type === 'full' || problem?.type === 'full2' ? "800px" : "500px"}
                 defaultLanguage="csharp"
                 value={code}
                 onChange={setCode}

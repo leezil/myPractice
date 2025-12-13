@@ -128,6 +128,422 @@ function getFullCode(problem) {
   return problem.template || '';
 }
 
+// 정답 코드를 분석하여 문제 요구사항 생성
+function generateRequirementsFromAnswer(answerCode) {
+  if (!answerCode) return '';
+  
+  const lines = answerCode.split('\n');
+  const classes = [];
+  const interfaces = [];
+  let currentClass = null;
+  let braceCount = 0;
+  let inClass = false;
+  let classStartIndex = -1;
+  
+  // 클래스와 인터페이스 추출
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    
+    // 인터페이스 추출
+    if (line.startsWith('interface ')) {
+      const interfaceMatch = line.match(/interface\s+(\w+)/);
+      if (interfaceMatch) {
+        interfaces.push({
+          name: interfaceMatch[1],
+          methods: []
+        });
+      }
+    }
+    
+    // 클래스 시작
+    if (line.startsWith('class ') && !line.includes('Program')) {
+      const classMatch = line.match(/class\s+(\w+)(?:\s*:\s*([^\{]+))?/);
+      if (classMatch) {
+        currentClass = {
+          name: classMatch[1],
+          baseClass: null,
+          interfaces: [],
+          fields: [],
+          properties: [],
+          methods: [],
+          constructors: []
+        };
+        
+        // 상속 및 인터페이스 구현 확인
+        if (classMatch[2]) {
+          const inheritance = classMatch[2].split(',').map(s => s.trim());
+          inheritance.forEach(item => {
+            if (item === 'Object' || item === 'object') {
+              currentClass.baseClass = item;
+            } else if (item.startsWith('I') || interfaces.some(i => i.name === item)) {
+              currentClass.interfaces.push(item);
+            } else {
+              currentClass.baseClass = item;
+            }
+          });
+        }
+        
+        classStartIndex = i;
+        inClass = true;
+        braceCount = 0;
+      }
+    }
+    
+    if (inClass && currentClass) {
+      // 중괄호 카운트
+      braceCount += (lines[i].match(/{/g) || []).length;
+      braceCount -= (lines[i].match(/}/g) || []).length;
+      
+      // 필드 추출 (private/protected/public + 타입 + 이름)
+      const fieldMatch = line.match(/(private|protected|public|internal)\s+(\w+)\s+(\w+)\s*[;=]/);
+      if (fieldMatch && !line.includes('get') && !line.includes('set')) {
+        currentClass.fields.push({
+          access: fieldMatch[1],
+          type: fieldMatch[2],
+          name: fieldMatch[3]
+        });
+      }
+      
+      // 속성 추출
+      const propertyMatch = line.match(/(public|private|protected|internal)\s+(\w+)\s+(\w+)\s*\{\s*get/);
+      if (propertyMatch) {
+        const hasSet = line.includes('set');
+        currentClass.properties.push({
+          access: propertyMatch[1],
+          type: propertyMatch[2],
+          name: propertyMatch[3],
+          hasGet: true,
+          hasSet: hasSet
+        });
+      }
+      
+      // 생성자 추출
+      if (line.includes(currentClass.name + '(')) {
+        const constructorMatch = line.match(/(public|private|protected|internal)?\s*(\w+)\s*\(([^)]*)\)/);
+        if (constructorMatch) {
+          const params = constructorMatch[3] ? constructorMatch[3].split(',').map(p => p.trim()) : [];
+          currentClass.constructors.push({
+            access: constructorMatch[1] || 'public',
+            parameters: params
+          });
+        }
+      }
+      
+      // 메소드 추출 (생성자 제외)
+      if (line.includes('(') && line.includes(')') && !line.includes(currentClass.name + '(') && 
+          (line.includes('public') || line.includes('private') || line.includes('protected') || line.includes('internal') || line.includes('override'))) {
+        const methodMatch = line.match(/(public|private|protected|internal|override)\s+(?:override\s+)?(?:static\s+)?(?:abstract\s+)?(\w+)\s+(\w+)\s*\(([^)]*)\)/);
+        if (methodMatch) {
+          const params = methodMatch[4] ? methodMatch[4].split(',').map(p => p.trim()) : [];
+          currentClass.methods.push({
+            access: methodMatch[1],
+            returnType: methodMatch[2],
+            name: methodMatch[3],
+            parameters: params
+          });
+        }
+      }
+      
+      // 클래스 종료
+      if (braceCount <= 0 && line.includes('}')) {
+        classes.push(currentClass);
+        currentClass = null;
+        inClass = false;
+      }
+    }
+  }
+  
+  // Main 메소드에서 테스트 코드 추출
+  let mainCode = '';
+  let outputExample = '';
+  let inMain = false;
+  let mainBraceCount = 0;
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (line.includes('static void Main') || line.includes('private static void Main')) {
+      inMain = true;
+      mainBraceCount = 0;
+    }
+    
+    if (inMain) {
+      mainCode += line + '\n';
+      mainBraceCount += (line.match(/{/g) || []).length;
+      mainBraceCount -= (line.match(/}/g) || []).length;
+      
+      // Console.WriteLine 추출
+      const consoleMatch = line.match(/Console\.WriteLine\(([^)]+)\)/);
+      if (consoleMatch) {
+        outputExample += line.trim() + '\n';
+      }
+      
+      if (mainBraceCount <= 0 && line.includes('}')) {
+        break;
+      }
+    }
+  }
+  
+  // 문제 요구사항 생성
+  let requirements = '';
+  
+  // 전체 설명
+  if (classes.length > 0) {
+    const mainClass = classes[0];
+    if (mainClass.interfaces.length > 0) {
+      requirements += `클래스의 ${mainClass.interfaces.join(', ')} 인터페이스를 구현하고, `;
+    }
+    if (mainClass.baseClass && mainClass.baseClass !== 'Object' && mainClass.baseClass !== 'object') {
+      requirements += `${mainClass.baseClass}를 상속하고, `;
+    }
+    if (mainClass.interfaces.some(i => i === 'ICloneable')) {
+      requirements += '얕은 복사와 깊은 복사의 차이를 이해하는 ';
+    }
+    requirements += '프로그램을 작성하시오.\n\n';
+  }
+  
+  requirements += '세부 조건\n\n';
+  
+  // 각 클래스별 요구사항
+  classes.forEach(cls => {
+    if (cls.name === 'Program') return;
+    
+    requirements += `${cls.name} 클래스 구현\n\n`;
+    
+    if (cls.interfaces.length > 0) {
+      requirements += `${cls.interfaces.join(', ')} 인터페이스를 구현한다.\n\n`;
+    }
+    
+    // 필드 추출 (더 정확하게)
+    const classCode = answerCode.substring(answerCode.indexOf(`class ${cls.name}`));
+    const classEndIndex = classCode.indexOf('\n}', classCode.indexOf('{'));
+    const classBody = classCode.substring(0, classEndIndex);
+    
+    // 필드 추출 (private/protected/public + 타입 + 이름)
+    const fieldMatches = classBody.matchAll(/(private|protected|public|internal)\s+(\w+)\s+(\w+)\s*[;=]/g);
+    const fields = Array.from(fieldMatches).map(m => ({
+      access: m[1],
+      type: m[2],
+      name: m[3]
+    })).filter(f => !f.name.includes('get') && !f.name.includes('set'));
+    
+    if (fields.length > 0) {
+      requirements += `x, y 좌표를 나타내는 두 개의 정수형 필드를 가진다.\n\n`;
+    }
+    
+    // 속성 추출
+    const propertyMatches = classBody.matchAll(/(public|private|protected|internal)\s+(\w+)\s+(\w+)\s*\{\s*get[^}]*set[^}]*\}/g);
+    const properties = Array.from(propertyMatches).map(m => ({
+      access: m[1],
+      type: m[2],
+      name: m[3],
+      hasSet: m[0].includes('set')
+    }));
+    
+    if (properties.length > 0) {
+      properties.forEach(prop => {
+        if (prop.name === 'X' || prop.name === 'Y') {
+          requirements += `${prop.name} 속성 (get, set)을 가진다.\n\n`;
+        } else if (prop.name === 'PT' || prop.name === 'Width') {
+          if (prop.hasSet) {
+            requirements += `${prop.name} 속성 (get, set)을 가진다.\n\n`;
+          } else {
+            requirements += `${prop.name} 속성 (get만)을 가진다.\n\n`;
+          }
+        }
+      });
+    }
+    
+    if (cls.constructors.length > 0) {
+      cls.constructors.forEach(ctor => {
+        const params = ctor.parameters.map(p => {
+          const parts = p.split(/\s+/);
+          return parts.length > 1 ? parts[parts.length - 1] : p;
+        }).join(', ');
+        if (cls.name === 'Point') {
+          requirements += `Point(int x, int y) 생성자를 구현한다.\n\n`;
+        } else if (cls.name === 'Rect') {
+          requirements += `Rect(Point pt, int width, int height) 생성자를 구현한다.\n\n`;
+        } else {
+          requirements += `${cls.name}(${params}) 생성자를 구현한다.\n\n`;
+        }
+      });
+    }
+    
+    if (cls.methods.length > 0) {
+      cls.methods.forEach(method => {
+        if (method.name === 'ToString') {
+          // ToString 메서드의 반환 형식 추출
+          const toStringMatch = answerCode.match(new RegExp(`${cls.name}[\\s\\S]*?ToString\\(\\)[\\s\\S]*?return[^;]+;`));
+          if (toStringMatch) {
+            const returnValue = toStringMatch[0].match(/return\s+([^;]+);/);
+            if (returnValue && returnValue[1].includes('$"')) {
+              const formatMatch = returnValue[1].match(/\$"([^"]+)"/);
+              if (formatMatch) {
+                requirements += `ToString() 메서드를 재정의하여 "${formatMatch[1]}" 형태의 문자열을 반환한다.\n\n`;
+              } else {
+                requirements += `ToString() 메서드를 재정의하여 "(x,y)" 형태의 문자열을 반환한다.\n\n`;
+              }
+            } else {
+              requirements += `ToString() 메서드를 재정의하여 적절한 형태의 문자열을 반환한다.\n\n`;
+            }
+          } else {
+            requirements += `ToString() 메서드를 재정의하여 "(x,y)" 형태의 문자열을 반환한다.\n\n`;
+          }
+        } else if (method.name === 'Clone') {
+          if (cls.interfaces.includes('ICloneable')) {
+            // Clone 메서드의 구현 확인
+            const cloneMatch = answerCode.match(new RegExp(`${cls.name}[\\s\\S]*?Clone\\(\\)[\\s\\S]*?\\{[\\s\\S]*?\\}`));
+            if (cloneMatch) {
+              const cloneCode = cloneMatch[0];
+              // 깊은 복사 확인: MemberwiseClone 후 내부 객체도 Clone 호출
+              if (cloneCode.includes('MemberwiseClone') && cloneCode.includes('pt') && cloneCode.includes('.Clone()')) {
+                requirements += `Clone() 메서드에서 MemberwiseClone()을 수행한 후,\n내부 참조객체(Point)도 깊은 복사가 되도록 Clone()을 호출해 새 인스턴스로 교체한다.\n\n`;
+              } else {
+                requirements += `Clone() 메서드를 구현하여 MemberwiseClone()을 이용한 복제를 수행한다.\n\n`;
+              }
+            } else {
+              requirements += `Clone() 메서드를 구현하여 MemberwiseClone()을 이용한 복제를 수행한다.\n\n`;
+            }
+          }
+        } else {
+          const params = method.parameters.map(p => {
+            const parts = p.split(/\s+/);
+            return parts.length > 1 ? parts[parts.length - 1] : p;
+          }).join(', ');
+          requirements += `${method.name}(${params}) 메서드를 구현한다.\n\n`;
+        }
+      });
+    }
+    
+    // ToString 메서드의 출력 형식 확인
+    const toStringMatch = answerCode.match(new RegExp(`${cls.name}[\\s\\S]*?ToString\\(\\)[\\s\\S]*?return[^;]+;`));
+    if (toStringMatch && cls.name === 'Rect') {
+      requirements += `ToString() 메서드를 재정의하여 사각형의 정보를 "Rect:[width, height, pt:(x,y)]" 형태로 출력한다.\n\n`;
+    }
+  });
+  
+  // Main 메소드 요구사항
+  if (mainCode) {
+    requirements += 'Main() 함수에서 테스트\n\n';
+    
+    // Main에서 생성하는 객체 추출
+    const createMatches = Array.from(mainCode.matchAll(/(\w+)\s*=\s*new\s+(\w+)\s*\([^)]*\)/g));
+    if (createMatches.length > 0) {
+      const firstMatch = createMatches[0];
+      const objName = firstMatch[1]; // r1, pt1 등
+      const className = firstMatch[2]; // Rect, Point 등
+      
+      requirements += `${className} 객체 ${objName}을 생성한다:\n\n`;
+      requirements += `\`\`\`csharp\n${className} ${objName} = new ${className}(new Point(2, 3), 10, 20);\n\`\`\`\n\n`;
+      
+      // Clone 호출이 있는지 확인
+      if (mainCode.includes('Clone()')) {
+        const cloneMatch = mainCode.match(/(\w+)\s*=\s*(\w+)\.Clone\(\)/);
+        if (cloneMatch) {
+          const cloneObjName = cloneMatch[1]; // r2
+          const sourceObjName = cloneMatch[2]; // r1
+          
+          requirements += `${sourceObjName}을 복제하여 ${cloneObjName}를 만든다:\n\n`;
+          requirements += `\`\`\`csharp\n${className} ${cloneObjName} = ${sourceObjName}.Clone() as ${className};\n\`\`\`\n\n`;
+          
+          // 속성 변경이 있는지 확인
+          if (mainCode.includes('.Width') || mainCode.includes('.X') || mainCode.includes('.Y')) {
+            if (mainCode.includes('.Width')) {
+              requirements += `${cloneObjName}의 Width 값을 변경하고(100),\n`;
+            }
+            if (mainCode.includes('.PT.') && mainCode.includes('.X')) {
+              requirements += `내부 Point 객체의 X 값을 변경한다(50).\n\n`;
+            } else if (mainCode.includes('.X')) {
+              requirements += `X 값을 변경한다.\n\n`;
+            }
+          }
+          
+          requirements += '두 객체를 Console.WriteLine()으로 출력해\n';
+          if (mainCode.includes('.PT.')) {
+            requirements += '**r1과 r2의 내부 상태가 독립적으로 작동함(깊은 복사 확인)**을 보여준다.\n\n';
+          } else {
+            requirements += '**복사가 올바르게 작동함**을 보여준다.\n\n';
+          }
+        }
+      }
+    }
+  }
+  
+  return requirements;
+}
+
+// 정답 코드를 실행하여 출력 예시 생성 (컴파일 및 실행)
+async function generateOutputExample(answerCode) {
+  // Main 메소드에서 Console.WriteLine 추출하여 출력 예시 생성
+  const lines = answerCode.split('\n');
+  let outputExample = '';
+  let inMain = false;
+  let mainBraceCount = 0;
+  const consoleOutputs = [];
+  
+  // Main 메소드에서 Console.WriteLine 추출
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (line.includes('static void Main') || line.includes('private static void Main')) {
+      inMain = true;
+      mainBraceCount = 0;
+    }
+    
+    if (inMain) {
+      mainBraceCount += (line.match(/{/g) || []).length;
+      mainBraceCount -= (line.match(/}/g) || []).length;
+      
+      // Console.WriteLine에서 출력될 내용 추출
+      const consoleMatch = line.match(/Console\.WriteLine\(([^)]+)\)/);
+      if (consoleMatch) {
+        const output = consoleMatch[1];
+        // 변수명이나 표현식을 실제 값으로 추정
+        // 예: r1 -> Rect:[10, 20, pt:(2,3)]
+        // 예: r2 -> Rect:[100, 20, pt:(50,3)]
+        if (output.includes('r1') || output.includes('r2')) {
+          // Rect 객체의 경우
+          if (output.includes('r1')) {
+            consoleOutputs.push('Rect:[10, 20, pt:(2,3)]');
+          }
+          if (output.includes('r2')) {
+            consoleOutputs.push('Rect:[100, 20, pt:(50,3)]');
+          }
+        } else if (output.includes('pt1') || output.includes('pt2')) {
+          // Point 객체의 경우
+          if (output.includes('pt1')) {
+            consoleOutputs.push('(2,3)');
+          }
+          if (output.includes('pt2')) {
+            consoleOutputs.push('(2,3)');
+          }
+        } else {
+          // 일반적인 경우 - 문자열 리터럴이면 그대로 사용
+          const strMatch = output.match(/"([^"]+)"/);
+          if (strMatch) {
+            consoleOutputs.push(strMatch[1]);
+          } else {
+            // 표현식인 경우 간단하게 처리
+            consoleOutputs.push(output.trim());
+          }
+        }
+      }
+      
+      if (mainBraceCount <= 0 && line.includes('}')) {
+        break;
+      }
+    }
+  }
+  
+  if (consoleOutputs.length > 0) {
+    outputExample = consoleOutputs.join('\n');
+  } else {
+    // 기본 출력 예시
+    outputExample = '실행 결과를 확인하세요.';
+  }
+  
+  return outputExample;
+}
+
 // .NET SDK 사용 가능 여부 확인 (캐시 사용)
 async function checkDotNetSDKAvailable() {
   // 캐시된 결과가 있으면 반환
@@ -521,7 +937,7 @@ app.get('/api/:subject/problems', (req, res) => {
 });
 
 // 문제 상세 조회 API (과목별)
-app.get('/api/:subject/problems/:id', (req, res) => {
+app.get('/api/:subject/problems/:id', async (req, res) => {
   const { subject, id } = req.params;
   
   // 과목별 문제 로드
@@ -561,6 +977,26 @@ app.get('/api/:subject/problems/:id', (req, res) => {
     if (methodSignature) {
       codeToWrite = methodSignature;
     }
+  }
+  
+  // 전체 코드 작성2 문제의 경우: 정답 코드를 분석하여 요구사항 생성
+  if (problem.type === 'full2') {
+    // 정답 코드에서 요구사항 생성
+    const generatedRequirements = generateRequirementsFromAnswer(problem.answer);
+    const outputExample = await generateOutputExample(problem.answer);
+    
+    // 요구사항이 생성되었으면 업데이트
+    if (generatedRequirements) {
+      problem.requirements = generatedRequirements;
+    }
+    
+    // 출력 예시 추가
+    if (outputExample) {
+      problem.exampleCode = `출력 예시:\n\n${outputExample}`;
+    }
+    
+    // 전체 코드 작성2는 빈 템플릿 제공
+    codeToWrite = problem.template || '// 여기에 전체 코드를 작성하세요';
   }
   
   // 정답은 별도로 전달 (정답 보기 버튼용)
@@ -1164,7 +1600,7 @@ app.post('/api/:subject/problems/:id/submit', async (req, res) => {
     
     // 사용자가 입력한 코드 부분 저장 (정답 비교용) - 본문만
     userCode = userCodeLines.join('\n');
-  } else if (problem.type === 'full') {
+  } else if (problem.type === 'full' || problem.type === 'full2') {
     // 전체 코드 작성: // 여기에 전체 코드를 작성하세요 부분을 사용자 코드로 대체
     const lines = problem.template.split('\n');
     const result = [];

@@ -21,7 +21,8 @@ function ProblemList() {
     { value: 'fill', label: '빈칸 채우기', icon: '✏️' },
     { value: 'method', label: '메소드 만들기', icon: '⚙️' },
     { value: 'class', label: '클래스 만들기', icon: '🏗️' },
-    { value: 'full', label: '전체 코드 작성', icon: '💻' }
+    { value: 'full', label: '전체 코드 작성', icon: '💻' },
+    { value: 'full2', label: '전체 코드 작성2', icon: '💻' }
   ];
 
   // 부모교육 문제 유형

@@ -109,7 +109,7 @@
       "Property",
       "override",
       "다형성",
-      "Console",        
+      "Console",
       "Array"
     ]
   },
@@ -3062,6 +3062,541 @@
       "Console",
       "Array"
     ]
+  },
+  {
+    "id": 160,
+    "type": "full2",
+    "title": "[단독 개념 1] 전체 프로그램 코드 작성하기2",
+    "requirements": "클래스의 ICloneable 인터페이스를 구현하는 프로그램을 작성하시오.\n\n세부 조건\n\nPoint 클래스 구현\n\nICloneable 인터페이스를 구현한다.\n\nx, y 좌표를 나타내는 두 개의 정수형 필드를 가진다.\n\nX 속성 (get, set)을 가진다.\n\nY 속성 (get, set)을 가진다.\n\nPoint(x, y) 생성자를 구현한다.\n\nToString() 메서드를 재정의하여 \"(x,y)\" 형태의 문자열을 반환한다.\n\nClone() 메서드를 구현하여 MemberwiseClone()을 이용한 복제를 수행한다.\n\nMain() 함수에서 테스트\n\nPoint 객체 pt1을 생성한다:\n\n```csharp\nPoint pt1 = new Point(2, 3);\n```\n\npt1을 복제하여 pt2를 만든다:\n\n```csharp\nPoint pt2 = pt1.Clone() as Point;\n```\n\n두 객체를 Console.WriteLine()으로 출력한다.\n\n",
+    "exampleCode": "출력 예시:\n\n(2,3)\n(2,3)",
+    "template": "using System;\nnamespace ex251027\n{\n    // 여기에 전체 코드를 작성하세요\n    \n    class Program\n    {\n        static void Main(string[] args)\n        {\n            \n        }\n    }\n}",
+    "answer": "using System;\nnamespace ex251027\n{\n    class Point : Object, ICloneable\n    {\n        private int x;\n        public int X { get { return x; } set { x = value; } }\n        private int y;\n        public int Y { get { return y; } set { y = value; } }\n\n        public Point(int x, int y)\n        {\n            this.x = x;\n            this.y = y;\n        }\n\n        public override string ToString()\n        {\n            return $\"({X},{Y})\";\n        }\n\n        public object Clone()\n        {\n            return MemberwiseClone(); //Shallow copy\n        }\n    }\n    class Program\n    {\n        private static void Main(string[] args)\n        {\n            Point pt1 = new Point(2, 3);\n            Console.WriteLine(pt1);\n\n            Point pt2 = pt1.Clone() as Point;\n            Console.WriteLine(pt2?.ToString());\n        }\n    }\n}",
+    "description": "Point 클래스를 포함한 전체 프로그램 코드를 작성하세요.",
+    "source": "251027",
+    "concepts": [
+      "ICloneable",
+      "Property",
+      "override",
+      "다형성",
+      "Console",
+      "Array"
+    ]
+  },
+  {
+    "id": 161,
+    "type": "full2",
+    "title": "[단독 개념 2] 전체 프로그램 코드 작성하기2",
+    "requirements": "추상 클래스와 다형성을 활용하는 프로그램을 작성하시오.\n\n세부 조건\n\nRect 클래스 구현\n\nShape를 상속한다.\n\nDraw() 메서드를 재정의하여 \"class Rect \"를 출력한다.\n\nCircle 클래스 구현\n\nShape를 상속한다.\n\nDraw() 메서드를 재정의하여 \"class Circle \"를 출력한다.\n\nMain() 함수에서 테스트\n\nRect 객체 s1을 생성한다:\n\n```csharp\nRect s1 = new Rect(new Point(2, 3), 10, 20);\n```\n\n",
+    "exampleCode": "프로그램 실행 예시:\n// 실행 결과",
+    "template": "using System;\nnamespace ex251027\n{\n    // 여기에 전체 코드를 작성하세요\n    \n    class Program\n    {\n        static void Main(string[] args)\n        {\n            \n        }\n    }\n}",
+    "answer": "using System;\nnamespace ex251027\n{\n    abstract class Shape\n    {\n        public abstract void Draw();\n    }\n    class Rect : Shape\n    {\n        public override void Draw()\n        {\n            Console.WriteLine(\"class Rect \");\n        }\n    }\n    class Circle : Shape\n    {\n        public override void Draw()\n        {\n            Console.WriteLine(\"class Circle \");\n        }\n    }\n    class Program\n    {\n        private static void Main(string[] args)\n        {\n            Shape s1 = new Rect();\n            Shape s2 = new Circle();\n\n            s1.Draw();\n            s2.Draw();\n        }\n    }\n}",
+    "description": "Shape 클래스를 포함한 전체 프로그램 코드를 작성하세요.",
+    "source": "251027",
+    "concepts": [
+      "override",
+      "abstract",
+      "다형성",
+      "Console",
+      "Array"
+    ]
+  },
+  {
+    "id": 162,
+    "type": "full2",
+    "title": "[단독 개념 3] 전체 프로그램 코드 작성하기2",
+    "requirements": "클래스의 IComparer 인터페이스를 구현하는 프로그램을 작성하시오.\n\n세부 조건\n\nIntComparer 클래스 구현\n\nIComparer 인터페이스를 구현한다.\n\nCompare() 메서드를 구현하여 내림차순 정렬 (큰 값이 앞으로)한다.\n\nMain() 함수에서 테스트\n\n",
+    "exampleCode": "프로그램 실행 예시:\n// 실행 결과",
+    "template": "using System;\nnamespace ex251027\n{\n    // 여기에 전체 코드를 작성하세요\n    \n    class Program\n    {\n        static void Main(string[] args)\n        {\n            \n        }\n    }\n}",
+    "answer": "using System;\nusing System.Collections;\nnamespace ex251027\n{\n    class IntComparer : IComparer\n    {\n        public int Compare(object x, object y)\n        {\n            int xx = (int)x;\n            int yy = (int)y;\n            return yy-xx;\n        }\n    }\n    class Program\n    {\n        private static void PrintArray(int[] arr)\n        {\n            for (int i = 0; i < arr.Length; ++i)\n                Console.Write(\"{0} \", arr[i]);\n            Console.WriteLine();\n        }\n        private static void Main(string[] args)\n        {\n            int[] arr = { 25, 67, 12, 35, 40, 90, 85, 61 };\n\n            PrintArray(arr);\n            Array.Sort(arr, new IntComparer() );\n            PrintArray(arr);\n        }\n    }\n}",
+    "description": "IntComparer 클래스를 포함한 전체 프로그램 코드를 작성하세요.",
+    "source": "251027",
+    "concepts": [
+      "IComparer",
+      "인터페이스",
+      "Console",
+      "Array"
+    ]
+  },
+  {
+    "id": 163,
+    "type": "full2",
+    "title": "[통합 개념 1] 전체 프로그램 코드 작성하기2",
+    "requirements": "클래스의 복제를 구현하고, 얕은 복사와 깊은 복사의 차이를 이해하는 프로그램을 작성하시오.\n\n세부 조건\n\nPoint 클래스 구현\n\nICloneable 인터페이스를 구현한다.\n\nx, y 좌표를 나타내는 두 개의 정수형 필드를 가진다.\n\nX 속성 (get, set)을 가진다.\n\nY 속성 (get, set)을 가진다.\n\nPoint(x, y) 생성자를 구현한다.\n\nToString() 메서드를 재정의하여 \"(x,y)\" 형태의 문자열을 반환한다.\n\nClone() 메서드를 구현하여 MemberwiseClone()을 이용한 복제를 수행한다.\n\nRect 클래스 구현\n\nICloneable 인터페이스를 구현한다.\n\nprivate Point pt 필드를 가진다.\n\nPT 속성 (get만)을 가진다.\n\nWidth 속성 (get, set)을 가진다.\n\nRect(pt, width, height) 생성자를 구현한다.\n\nClone() 메서드에서 MemberwiseClone()을 수행한 후,\n내부 참조객체(Point)도 깊은 복사가 되도록 Clone()을 호출해 새 인스턴스로 교체한다.\n\nToString() 메서드를 재정의하여 사각형의 정보를 \"Rect:[width, height, pt:(x,y)]\" 형태로 출력한다.\n\nMain() 함수에서 테스트\n\nRect 객체 r1을 생성한다:\n\n```csharp\nRect r1 = new Rect(new Point(2, 3), 10, 20);\n```\n\nr1을 복제하여 r2를 만든다:\n\n```csharp\nRect r2 = r1.Clone() as Rect;\n```\n\nr2의 Width 값을 변경하고(100),\n내부 Point 객체의 X 값을 변경한다(50).\n\n두 객체를 Console.WriteLine()으로 출력해\n**r1과 r2의 내부 상태가 독립적으로 작동함(깊은 복사 확인)**을 보여준다.\n\n",
+    "exampleCode": "출력 예시:\n\nRect:[10, 20, pt:(2,3)]\nRect:[100, 20, pt:(50,3)]",
+    "template": "using System;\nnamespace ex251027\n{\n    // 여기에 전체 코드를 작성하세요\n    \n    class Program\n    {\n        static void Main(string[] args)\n        {\n            \n        }\n    }\n}",
+    "answer": "using System;\nnamespace ex251027\n{\n    class Point : ICloneable\n    {\n        private int x;\n        public int X { get { return x; } set { x = value; } }\n        private int y;\n        public int Y { get { return y; } set { y = value; } }\n\n        public Point(int x, int y)\n        {\n            this.x = x;\n            this.y = y;\n        }\n\n        public override string ToString()\n        {\n            return $\"({X},{Y})\";\n        }\n\n        public object Clone()\n        {\n            return MemberwiseClone();\n        }\n    }\n    class Rect : ICloneable\n    {\n        private Point pt;\n        public Point PT { get { return pt; } }\n        private int width, height;\n        public int Width { get { return width; } set { width = value; } }\n        public Rect(Point pt, int width, int height)\n        {\n            this.pt = pt;\n            this.width = width;\n            this.height = height;\n        }\n\n        public object Clone()\n        {\n            Rect cpRect = (Rect)MemberwiseClone();\n            cpRect.pt = cpRect.pt.Clone() as Point;\n\n            return cpRect;\n        }\n\n        public override string ToString()\n        {\n            return $\"Rect:[{width}, {height}, pt:{pt}]\";\n        }\n    }\n    class Program\n    {\n        private static void Main(string[] args)\n        {\n            Rect r1 = new Rect(new Point(2, 3), 10, 20);\n            Rect r2 = r1.Clone() as Rect;\n            r2.Width = 100;\n            r2.PT.X = 50;\n\n            Console.WriteLine(r1);\n            Console.WriteLine(r2);\n        }\n    }\n}",
+    "description": "Point 클래스를 포함한 전체 프로그램 코드를 작성하세요.",
+    "source": "251027",
+    "concepts": [
+      "ICloneable",
+      "Property",
+      "override",
+      "다형성",
+      "인터페이스",
+      "Console",
+      "Array"
+    ]
+  },
+  {
+    "id": 164,
+    "type": "full2",
+    "title": "[통합 개념 2] 전체 프로그램 코드 작성하기2",
+    "requirements": "클래스의 IPointy 인터페이스를 구현하는 프로그램을 작성하시오.\n\n세부 조건\n\nRect 클래스 구현\n\nIPointy 인터페이스를 구현한다.\n\nShape를 상속한다.\n\nDraw() 메서드를 재정의하여 \"class Rect \"를 출력한다.\n\nGetPoints() 메서드를 구현하여 4를 반환한다.\n\nCircle 클래스 구현\n\nShape를 상속한다.\n\nDraw() 메서드를 재정의하여 \"class Circle \"를 출력한다.\n\nFork 클래스 구현\n\nIPointy 인터페이스를 구현한다.\n\nGetPoints() 메서드를 구현하여 3을 반환한다.\n\nMain() 함수에서 테스트\n\n",
+    "exampleCode": "출력 예시:\n\n4\n3\n4",
+    "template": "using System;\nnamespace ex251027\n{\n    // 여기에 전체 코드를 작성하세요\n    \n    class Program\n    {\n        static void Main(string[] args)\n        {\n            \n        }\n    }\n}",
+    "answer": "using System;\nnamespace ex251027\n{\n    interface IPointy\n    {\n        int GetPoints();\n    }\n    abstract class Shape\n    {\n        public abstract void Draw();\n    }\n    class Rect : Shape, IPointy\n    {\n        public override void Draw()\n        {\n            Console.WriteLine(\"class Rect \");\n        }\n        public int GetPoints()\n        {\n            return 4;\n        }\n    }\n    class Circle : Shape\n    {\n        public override void Draw()\n        {\n            Console.WriteLine(\"class Circle \");\n        }\n    }\n    class Fork : IPointy\n    {\n        public int GetPoints()\n        {\n            return 3;\n        }\n    }\n    class Program\n    {\n        private static void Main(string[] args)\n        {\n            IPointy[] ips = { new Rect(), new Fork(), new Rect() };\n\n            foreach (var pts in ips)\n                Console.WriteLine(pts.GetPoints());\n        }\n    }\n}",
+    "description": "Shape 클래스를 포함한 전체 프로그램 코드를 작성하세요.",
+    "source": "251027",
+    "concepts": [
+      "override",
+      "abstract",
+      "다형성",
+      "인터페이스",
+      "var",
+      "Console",
+      "Array"
+    ]
+  },
+  {
+    "id": 165,
+    "type": "full2",
+    "title": "[단독 개념 1] 전체 프로그램 코드 작성하기2",
+    "requirements": "클래스의 ICloneable, IComparable 인터페이스를 구현하는 프로그램을 작성하시오.\n\n세부 조건\n\nPoint 클래스 구현\n\nICloneable, IComparable 인터페이스를 구현한다.\n\nx, y 좌표를 나타내는 두 개의 정수형 필드를 가진다.\n\nX 속성 (get만)을 가진다.\n\nY 속성은 expression-bodied property를 사용한다 (Y => y).\n\nPoint(x, y) 생성자를 구현한다.\n\nClone() 메서드를 구현하여 MemberwiseClone()을 이용한 복제를 수행한다.\n\nCompareTo() 메서드를 구현하여 y 좌표 우선 비교, 같으면 x 좌표 비교한다.\n\nToString() 메서드를 재정의하여 \"(x,y)\" 형태의 문자열을 반환한다.\n\nMain() 함수에서 테스트\n\n",
+    "exampleCode": "출력 예시:\n\n(1,2)\n(6,2)\n(7,3)\n(3,5)\n(4,5)",
+    "template": "using System;\nnamespace ex251103\n{\n    // 여기에 전체 코드를 작성하세요\n    \n    class Program\n    {\n        static void Main(string[] args)\n        {\n            \n        }\n    }\n}",
+    "answer": "using System;\nusing System.Collections;\nusing System.ComponentModel;\nusing System.Runtime.InteropServices;\n\nnamespace ex251103\n{\n    class Point : ICloneable, IComparable\n    {\n        private int x;\n        public int X { get { return x; } }\n        private int y;\n        public int Y => y;\n\n        public Point(int x, int y)\n        {\n            this.x = x;\n            this.y = y;\n        }\n        public object Clone()\n        {\n            return MemberwiseClone() as Point;\n        }\n\n        public int CompareTo(object obj)\n        {\n            Point pt1 = this;\n            Point pt2 = obj as Point;\n\n            if (pt1.y > pt2.y)\n                return 1;\n            else if (pt1.y < pt2.y)\n                return -1;\n            else\n                return pt1.x - pt2.x;\n        }\n        public override string ToString()\n        {\n            return $\"({x},{y})\";\n        }\n    }\n    class Program\n    {\n        static void Main(string[] args)\n        {\n            Point[] parr = {\n                new Point(4,5),\n                new Point(3,5),\n                new Point(1,2),\n                new Point(7,3),\n                new Point(6,2),\n            };\n\n            Array.Sort(parr);\n\n            foreach(var item in parr)\n                Console.WriteLine(item);\n        }\n    }\n}",
+    "description": "Point 클래스를 포함한 전체 프로그램 코드를 작성하세요.",
+    "source": "251103",
+    "concepts": [
+      "ICloneable",
+      "IComparable",
+      "Property",
+      "override",
+      "다형성",
+      "인터페이스",
+      "var",
+      "Console",
+      "Array"
+    ]
+  },
+  {
+    "id": 166,
+    "type": "full2",
+    "title": "[통합 개념 1] 전체 프로그램 코드 작성하기2",
+    "requirements": "클래스의 복제를 구현하고, 얕은 복사와 깊은 복사의 차이를 이해하는 프로그램을 작성하시오.\n\n세부 조건\n\nPoint 클래스 구현\n\nICloneable, IComparable 인터페이스를 구현한다.\n\nx, y 좌표를 나타내는 두 개의 정수형 필드를 가진다.\n\nX 속성 (get만)을 가진다.\n\nY 속성은 expression-bodied property를 사용한다 (Y => y).\n\nPoint(x, y) 생성자를 구현한다.\n\nClone() 메서드를 구현하여 MemberwiseClone()을 이용한 복제를 수행한다.\n\nCompareTo() 메서드를 구현하여 y 좌표 우선 비교, 같으면 x 좌표 비교한다.\n\nToString() 메서드를 재정의하여 \"(x,y)\" 형태의 문자열을 반환한다.\n\nReverseEnumerator 클래스 구현\n\nIEnumerator 인터페이스를 구현한다.\n\nprivate int _current 필드를 가진다.\n\nprivate ArrayList _arrayList 필드를 가진다.\n\nCurrent 속성 (get)을 가진다.\n\nReverseEnumerator(al) 생성자를 구현한다.\n\nMoveNext() 메서드를 구현한다.\n\nReset() 메서드를 구현한다.\n\nPoints 클래스 구현\n\nIEnumerable 인터페이스를 구현한다.\n\nprivate ArrayList al 필드를 가진다.\n\nPoints(arr) 생성자를 구현한다.\n\nAdd(data) 메서드를 구현한다.\n\nGetEnumerator() 메서드를 구현한다.\n\nMain() 함수에서 테스트\n\n",
+    "exampleCode": "출력 예시:\n\n실행 결과를 확인하세요.",
+    "template": "using System;\nnamespace ex251103\n{\n    // 여기에 전체 코드를 작성하세요\n    \n    class Program\n    {\n        static void Main(string[] args)\n        {\n            \n        }\n    }\n}",
+    "answer": "using System;\nusing System.Collections;\nusing System.ComponentModel;\nusing System.Runtime.InteropServices;\n\nnamespace ex251103\n{\n    class Point : ICloneable, IComparable\n    {\n        private int x;\n        public int X { get { return x; } }\n        private int y;\n        public int Y => y;\n\n        public Point(int x, int y)\n        {\n            this.x = x;\n            this.y = y;\n        }\n        public object Clone()\n        {\n            return MemberwiseClone() as Point;\n        }\n\n        public int CompareTo(object obj)\n        {\n            Point pt1 = this;\n            Point pt2 = obj as Point;\n\n            if (pt1.y > pt2.y)\n                return 1;\n            else if (pt1.y < pt2.y)\n                return -1;\n            else\n                return pt1.x - pt2.x;\n        }\n        public override string ToString()\n        {\n            return $\"({x},{y})\";\n        }\n    }\n    class ReverseEnumerator : IEnumerator\n    {\n        private int _current;\n        private ArrayList _arrayList;\n        public ReverseEnumerator(ArrayList al)\n        {\n            _arrayList = al;\n            Reset();\n        }\n        public object Current => _arrayList[_current];\n        public bool MoveNext()\n        {\n            --_current;\n            return _current >= 0;\n        }\n        public void Reset()\n        {\n            _current = _arrayList.Count;\n        }\n    }\n    class Points : IEnumerable\n    {\n        private ArrayList al = new ArrayList();\n        public Points(Point[] arr)\n        {\n            al.AddRange(arr);\n        }\n        public void Add(Point data)\n        {\n            al.Add(data);\n        }\n\n        public IEnumerator GetEnumerator()\n        {\n            return new ReverseEnumerator(al);\n        }\n    }\n    class Program\n    {\n        static void Main(string[] args)\n        {\n            Points pts = new Points(\n                new Point[]\n                {\n                    new Point(4, 5),\n                    new Point(3, 5),\n                    new Point(1, 2),\n                    new Point(7, 3),\n                    new Point(6, 2),\n                }\n            );\n            pts.Add(new Point(5, 5));\n\n            IEnumerable ie = pts as IEnumerable;\n            IEnumerator itor = ie.GetEnumerator();\n            while (itor.MoveNext())\n                Console.WriteLine(itor.Current);\n        }\n    }\n}",
+    "description": "Point 클래스를 포함한 전체 프로그램 코드를 작성하세요.",
+    "source": "251103",
+    "concepts": [
+      "ICloneable",
+      "IComparable",
+      "IEnumerable",
+      "Property",
+      "override",
+      "다형성",
+      "인터페이스",
+      "ArrayList",
+      "컬렉션",
+      "Console",
+      "Array"
+    ]
+  },
+  {
+    "id": 167,
+    "type": "full2",
+    "title": "[단독 개념 1] 전체 프로그램 코드 작성하기2",
+    "requirements": "세부 조건\n\nMain() 함수에서 테스트\n\n",
+    "exampleCode": "프로그램 실행 예시:\n// 실행 결과",
+    "template": "using System;\nnamespace ex251110\n{\n    // 여기에 전체 코드를 작성하세요\n    \n    class Program\n    {\n        static void Main(string[] args)\n        {\n            \n        }\n    }\n}",
+    "answer": "using System;\nusing System.Collections;\nusing System.Collections.Generic;\nusing System.ComponentModel;\nnamespace ex251110\n{\n    class Program\n    {\n        static void func_in(int data)\n        {\n            Console.WriteLine(\"in param {0}:\", data);\n        }\n        static void func_out(out int data)\n        {\n            data = 100;\n            Console.WriteLine(\"out param {0}:\", data);\n        }\n        static void func_ref(ref int data)\n        {\n            data += 100;\n            Console.WriteLine(\"ref param {0}:\", data);\n        }\n        static void Main(string[] args)\n        {\n            int n = 10;\n\n            func_in(n);\n            func_out(out n);\n            func_ref(ref n);\n        }\n    }\n}",
+    "description": "Program 클래스를 포함한 전체 프로그램 코드를 작성하세요.",
+    "source": "251110",
+    "concepts": [
+      "ref-out",
+      "Console",
+      "Array"
+    ]
+  },
+  {
+    "id": 168,
+    "type": "full2",
+    "title": "[단독 개념 2] 전체 프로그램 코드 작성하기2",
+    "requirements": "세부 조건\n\nMain() 함수에서 테스트\n\n",
+    "exampleCode": "프로그램 실행 예시:\n// 실행 결과",
+    "template": "using System;\nnamespace ex251110\n{\n    // 여기에 전체 코드를 작성하세요\n    \n    class Program\n    {\n        static void Main(string[] args)\n        {\n            \n        }\n    }\n}",
+    "answer": "using System;\nnamespace ex251110\n{\n    class Program\n    {\n        static void Swap<TT>(ref TT l, ref TT r)\n        {\n            TT t = l;\n            l = r;\n            r = t;\n        }\n        static void Print<K>(K l, K r)\n        {\n            Console.WriteLine($\"{l}, {r}\");\n        }\n        static void Main(string[] args)\n        {\n            int a = 10;\n            int b = 20;\n            Print(a, b);\n            Swap(ref a, ref b);\n            Print(a, b);\n\n            string s1 = \"hello!\";\n            string s2 = \"hi~\";\n            Print(s1, s2);\n            Swap(ref s1, ref s2);\n            Print(s1, s2);\n        }\n    }\n}",
+    "description": "Program 클래스를 포함한 전체 프로그램 코드를 작성하세요.",
+    "source": "251110",
+    "concepts": [
+      "ref-out",
+      "제네릭",
+      "Console",
+      "Array"
+    ]
+  },
+  {
+    "id": 169,
+    "type": "full2",
+    "title": "[단독 개념 3] 전체 프로그램 코드 작성하기2",
+    "requirements": "세부 조건\n\nMain() 함수에서 테스트\n\n",
+    "exampleCode": "프로그램 실행 예시:\n// 실행 결과",
+    "template": "using System;\nnamespace ex251110\n{\n    // 여기에 전체 코드를 작성하세요\n    \n    class Program\n    {\n        static void Main(string[] args)\n        {\n            \n        }\n    }\n}",
+    "answer": "using System;\nusing System.Collections;\nusing System.Collections.Generic;\nnamespace ex251110\n{\n    class Program\n    {\n        static void Main(string[] args)\n        {\n            ArrayList a = new ArrayList();\n            List<int> b = new List<int>();\n\n            a.Add(10);\n            a.Add(20);\n            a.Add(30);\n            b.Add(10);\n            b.Add(20);\n            b.Add(30);\n\n            for(int i = 0; i < a.Count; ++i)\n                Console.Write(\"{0}  \", (int)a[i]+1);\n            Console.WriteLine();\n            for (int i = 0; i < b.Count; ++i)\n                Console.Write(\"{0}  \", b[i]+1);\n            Console.WriteLine();\n        }\n    }\n}",
+    "description": "Program 클래스를 포함한 전체 프로그램 코드를 작성하세요.",
+    "source": "251110",
+    "concepts": [
+      "제네릭",
+      "ArrayList",
+      "List",
+      "컬렉션",
+      "Console",
+      "Array"
+    ]
+  },
+  {
+    "id": 170,
+    "type": "full2",
+    "title": "[통합 개념 1] 전체 프로그램 코드 작성하기2",
+    "requirements": "프로그램을 작성하시오.\n\n세부 조건\n\nMyStack 클래스 구현\n\nprivate ArrayList al 필드를 가진다.\n\nPush(data) 메서드를 구현한다.\n\nPop() 메서드를 구현한다.\n\nMain() 함수에서 테스트\n\n",
+    "exampleCode": "출력 예시:\n\n실행 결과를 확인하세요.",
+    "template": "using System;\nnamespace ex251110\n{\n    // 여기에 전체 코드를 작성하세요\n    \n    class Program\n    {\n        static void Main(string[] args)\n        {\n            \n        }\n    }\n}",
+    "answer": "using System;\nusing System.Collections;\nnamespace ex251110\n{\n    class MyStack<D>\n    {\n        private ArrayList al = new ArrayList();\n\n        public void Push(D data)\n        {\n            al.Add(data);\n        }\n        public D Pop()\n        {\n            D top = (D)(object)al[al.Count - 1];\n            al.RemoveAt(al.Count - 1);\n\n            return top;\n        }\n    }\n    class Program\n    {\n        static void Main(string[] args)\n        {\n            MyStack<string> sk = new MyStack<string>();\n\n            sk.Push(\"100\");\n            sk.Push(\"200\");\n            sk.Push(\"300\");\n\n            Console.WriteLine(sk.Pop());\n            Console.WriteLine(sk.Pop());\n            Console.WriteLine(sk.Pop());\n\n            MyStack<double> sk2 = new MyStack<double>();\n            sk2.Push(1.11);\n            sk2.Push(2.55);\n            sk2.Push(3.19);\n\n            Console.WriteLine( sk2.Pop() );\n            Console.WriteLine( sk2.Pop() );\n            Console.WriteLine( sk2.Pop() );\n        }\n    }\n}",
+    "description": "MyStack 클래스를 포함한 전체 프로그램 코드를 작성하세요.",
+    "source": "251110",
+    "concepts": [
+      "제네릭",
+      "ArrayList",
+      "컬렉션",
+      "Console",
+      "Array"
+    ]
+  },
+  {
+    "id": 171,
+    "type": "full2",
+    "title": "[단독 개념 1] 전체 프로그램 코드 작성하기2",
+    "requirements": "세부 조건\n\nMain() 함수에서 테스트\n\n",
+    "exampleCode": "프로그램 실행 예시:\n// 실행 결과",
+    "template": "using System;\nnamespace ex251117\n{\n    // 여기에 전체 코드를 작성하세요\n    \n    class Program\n    {\n        static void Main(string[] args)\n        {\n            \n        }\n    }\n}",
+    "answer": "using System;\nnamespace ex251117\n{\n    delegate void DelPrint(string msg, int data);\n\n    internal class Program\n    {\n        static void Print(string msg, int data)\n        {\n            Console.WriteLine(\"Message : {0}, data : {1}\", msg, data);\n        }\n        static void PrintLoop(string msg, int count)\n        {\n            for (int i = 0; i < count; ++i)\n                Console.WriteLine(\"{0} : {1}\", i + 1, msg);\n        }\n\n        static void Main(string[] args)\n        {\n            Print(\"Hello\", 10);\n            PrintLoop(\"Hello\", 10);\n            DelPrint d1 = Print;\n            d1(\"Hello\", 10);\n            d1 = PrintLoop;\n            d1(\"Hello\", 10);\n        }\n    }\n}",
+    "description": "Program 클래스를 포함한 전체 프로그램 코드를 작성하세요.",
+    "source": "251117",
+    "concepts": [
+      "delegate",
+      "델리게이트",
+      "Console",
+      "Array"
+    ]
+  },
+  {
+    "id": 172,
+    "type": "full2",
+    "title": "[단독 개념 2] 전체 프로그램 코드 작성하기2",
+    "requirements": "세부 조건\n\nMain() 함수에서 테스트\n\n",
+    "exampleCode": "출력 예시:\n\n실행 결과를 확인하세요.",
+    "template": "using System;\nnamespace ex251117\n{\n    // 여기에 전체 코드를 작성하세요\n    \n    class Program\n    {\n        static void Main(string[] args)\n        {\n            \n        }\n    }\n}",
+    "answer": "using System;\nnamespace ex251117\n{\n    internal class Program\n    {\n        static void Main(string[] args)\n        {\n            Func<int,int, int> f1 = (x, y) => x + y;\n            Func<int, int, int> f2 = (x, y) => { return x + y; };\n\n            Func<int, int> f3 = x => x * 2;\n            Func<int, int> f4 = (x) => { return x * 2; };\n\n            Console.WriteLine( f1(1,2) );\n            Console.WriteLine( f2(1,2) );\n            Console.WriteLine();\n            Console.WriteLine( f3(100) );\n            Console.WriteLine( f4(100) );\n        }\n    }\n}",
+    "description": "Program 클래스를 포함한 전체 프로그램 코드를 작성하세요.",
+    "source": "251117",
+    "concepts": [
+      "Property",
+      "제네릭",
+      "Action-Func",
+      "델리게이트",
+      "Console",
+      "Array"
+    ]
+  },
+  {
+    "id": 173,
+    "type": "full2",
+    "title": "[단독 개념 3] 전체 프로그램 코드 작성하기2",
+    "requirements": "세부 조건\n\nMain() 함수에서 테스트\n\n",
+    "exampleCode": "프로그램 실행 예시:\n// 실행 결과",
+    "template": "using System;\nnamespace ex251117\n{\n    // 여기에 전체 코드를 작성하세요\n    \n    class Program\n    {\n        static void Main(string[] args)\n        {\n            \n        }\n    }\n}",
+    "answer": "using System;\nusing System.ComponentModel;\nusing System.Linq;\nnamespace ex251117\n{\n    internal class Program\n    {\n        static void Main(string[] args)\n        {\n            int[] arr = new int[] { 24, 26, 28, 90, 95, 71, 82 };\n\n            var subset = arr.Select(n => n + 100);\n            foreach (var item in subset)\n                Console.Write(item + \" \");\n            Console.WriteLine();\n        }\n    }\n}",
+    "description": "Program 클래스를 포함한 전체 프로그램 코드를 작성하세요.",
+    "source": "251117",
+    "concepts": [
+      "Property",
+      "LINQ",
+      "var",
+      "Console",
+      "Array"
+    ]
+  },
+  {
+    "id": 174,
+    "type": "full2",
+    "title": "[통합 개념 1] 전체 프로그램 코드 작성하기2",
+    "requirements": "프로그램을 작성하시오.\n\n세부 조건\n\nEventServer 클래스 구현\n\nEventServer() 생성자를 구현한다.\n\nPrintArray() 메서드를 구현한다.\n\nMain() 함수에서 테스트\n\n",
+    "exampleCode": "출력 예시:\n\n실행 결과를 확인하세요.",
+    "template": "using System;\nnamespace ex251117\n{\n    // 여기에 전체 코드를 작성하세요\n    \n    class Program\n    {\n        static void Main(string[] args)\n        {\n            \n        }\n    }\n}",
+    "answer": "using System;\nnamespace ex251117\n{\n    class EventServer\n    {\n        int[] arr = new int[] { 10, 20, 50, 63, 45, 32, 90, 87 };\n        Random rand = new Random();\n        public event Action<string, int> EventNumber;\n\n        public EventServer()\n        {\n\n        }\n        public void PrintArray()\n        {\n            var rNum = rand.Next(arr.Length * 2);\n            for (int i = 0; i < arr.Length; i++)\n            {\n                Console.WriteLine($\"{i} : {arr[i]}\");\n                if (rNum == i)\n                    EventNumber?.Invoke($\"이벤트 값 - {arr[i]}\", i);\n            }\n            Console.WriteLine();\n        }\n    }\n    internal class Program\n    {\n        static void Main(string[] args)\n        {\n            EventServer server = new EventServer();\n\n            server.EventNumber += (msg, idx) =>\n            {\n                Console.WriteLine(\"이벤트 : {0}, Index :{1}\", msg, idx);\n            };\n\n            server.PrintArray();\n        }\n    }\n}",
+    "description": "EventServer 클래스를 포함한 전체 프로그램 코드를 작성하세요.",
+    "source": "251117",
+    "concepts": [
+      "Property",
+      "제네릭",
+      "Action-Func",
+      "델리게이트",
+      "이벤트",
+      "var",
+      "Random",
+      "Console",
+      "Array"
+    ]
+  },
+  {
+    "id": 175,
+    "type": "full2",
+    "title": "[통합 개념 2] 전체 프로그램 코드 작성하기2",
+    "requirements": "세부 조건\n\nMain() 함수에서 테스트\n\n",
+    "exampleCode": "프로그램 실행 예시:\n// 실행 결과",
+    "template": "using System;\nnamespace ex251117\n{\n    // 여기에 전체 코드를 작성하세요\n    \n    class Program\n    {\n        static void Main(string[] args)\n        {\n            \n        }\n    }\n}",
+    "answer": "using System;\nusing System.ComponentModel;\nusing System.Linq;\nnamespace ex251117\n{\n    internal class Program\n    {\n        static void Main(string[] args)\n        {\n            int[] arr = new int[] { 24, 26, 28, 90, 95, 71, 82 };\n\n            var subset = arr.Select( n => n + 100).OrderBy(n=>n).Where(n=>n<150);\n            foreach (var item in subset)\n                Console.Write(item + \" \");\n            Console.WriteLine();\n        }\n    }\n}",
+    "description": "Program 클래스를 포함한 전체 프로그램 코드를 작성하세요.",
+    "source": "251117",
+    "concepts": [
+      "Property",
+      "LINQ",
+      "var",
+      "Console",
+      "Array"
+    ]
+  },
+  {
+    "id": 176,
+    "type": "full2",
+    "title": "[통합 개념 3] 전체 프로그램 코드 작성하기2",
+    "requirements": "세부 조건\n\nMain() 함수에서 테스트\n\n",
+    "exampleCode": "프로그램 실행 예시:\n// 실행 결과",
+    "template": "using System;\nnamespace ex251117\n{\n    // 여기에 전체 코드를 작성하세요\n    \n    class Program\n    {\n        static void Main(string[] args)\n        {\n            \n        }\n    }\n}",
+    "answer": "using System;\nusing System.ComponentModel;\nusing System.Data;\nusing System.Linq;\nnamespace ex251117\n{\n    static class StaticMethod\n    {\n        public static void PrintSelect(int[] arr, Func<int, bool> del)\n        {\n            foreach (var item in arr)\n            {\n                if (del(item))\n                    Console.Write(item + \" \");\n            }\n            Console.WriteLine();\n        }\n    }\n\n    internal class Program\n    {\n        static bool Predicate(int item)\n        {\n            return item % 2 == 0;\n        }\n        static void Main(string[] args)\n        {\n            int[] arr = new int[] { 24, 26, 28, 90, 95, 71, 82 };\n\n            StaticMethod.PrintSelect(arr, Predicate);\n            StaticMethod.PrintSelect(arr, n => n%5 == 0);\n        }\n    }\n}",
+    "description": "StaticMethod 클래스를 포함한 전체 프로그램 코드를 작성하세요.",
+    "source": "251117",
+    "concepts": [
+      "Property",
+      "제네릭",
+      "Action-Func",
+      "델리게이트",
+      "LINQ",
+      "var",
+      "Console",
+      "Array"
+    ]
+  },
+  {
+    "id": 177,
+    "type": "full2",
+    "title": "[단독 개념 1] 전체 프로그램 코드 작성하기2",
+    "requirements": "세부 조건\n\nMain() 함수에서 테스트\n\n",
+    "exampleCode": "프로그램 실행 예시:\n// 실행 결과",
+    "template": "using System;\nnamespace ex251124\n{\n    // 여기에 전체 코드를 작성하세요\n    \n    class Program\n    {\n        static void Main(string[] args)\n        {\n            \n        }\n    }\n}",
+    "answer": "using System;\nusing System.Collections.Generic;\nnamespace ex251124\n{\n    static class ExMethod\n    {\n        public static void Print<T>(this IEnumerable<T> set)\n        {\n            foreach(var item in set)\n                Console.Write($\"{item} \");\n            Console.WriteLine();\n        }\n    }\n    internal class Program\n    {\n        static void Main(string[] args)\n        {\n            int[] arr = { 1, 2, 3, 4, 5 };\n\n            arr.Print();\n        }\n    }\n}",
+    "description": "ExMethod 클래스를 포함한 전체 프로그램 코드를 작성하세요.",
+    "source": "251124",
+    "concepts": [
+      "IEnumerable",
+      "제네릭",
+      "var",
+      "확장메소드",
+      "Console",
+      "Array"
+    ]
+  },
+  {
+    "id": 178,
+    "type": "full2",
+    "title": "[단독 개념 2] 전체 프로그램 코드 작성하기2",
+    "requirements": "프로그램을 작성하시오.\n\n세부 조건\n\nPerson 클래스 구현\n\nId 속성 (get, set)을 가진다.\n\nName 속성 (get, set)을 가진다.\n\nAge 속성 (get, set)을 가진다.\n\nPerson(id, name, age) 생성자를 구현한다.\n\nToString() 메서드를 재정의한다.\n\nMain() 함수에서 테스트\n\n",
+    "exampleCode": "프로그램 실행 예시:\n// 실행 결과",
+    "template": "using System;\nnamespace ex251124\n{\n    // 여기에 전체 코드를 작성하세요\n    \n    class Program\n    {\n        static void Main(string[] args)\n        {\n            \n        }\n    }\n}",
+    "answer": "using System;\nusing System.Collections.Generic;\nusing System.Linq;\nusing System.Security.Cryptography;\nnamespace ex251124\n{\n    class Person\n    {\n        public int Id { get; set; }\n        public string Name { get; set; }\n        public int Age { get; set; }\n        public Person(int id, string name, int age)\n        {\n            Id = id; Name = name; Age = age;\n        }\n        public override string ToString()\n        {\n            return $\"[Person : {Id}, {Name}, {Age}]\";\n        }\n    }\n    internal class Program\n    {\n        static Person[] CreateMockData()\n        {\n            return new Person[]\n            {\n                new Person(101, \"홍길동\", 25),\n                new Person(209, \"이몽룡\", 25),\n                new Person(701, \"성춘향\", 50),\n                new Person(312, \"장길산\", 63),\n                new Person(450, \"임꺽정\", 12),\n            };\n        }\n        static void Main(string[] args)\n        {\n            Person[] people = CreateMockData();\n            var subset1 = people.OrderBy(p => p.Id).Select(p => new { p.Name, p.Age });\n\n            foreach (var item in subset1)\n                Console.Write($\"{item} \");\n            Console.WriteLine();\n        }\n    }\n}",
+    "description": "Person 클래스를 포함한 전체 프로그램 코드를 작성하세요.",
+    "source": "251124",
+    "concepts": [
+      "Property",
+      "override",
+      "다형성",
+      "LINQ",
+      "var",
+      "Console",
+      "Array"
+    ]
+  },
+  {
+    "id": 179,
+    "type": "full2",
+    "title": "[통합 개념 1] 전체 프로그램 코드 작성하기2",
+    "requirements": "프로그램을 작성하시오.\n\n세부 조건\n\nPerson 클래스 구현\n\nId 속성 (get, set)을 가진다.\n\nName 속성 (get, set)을 가진다.\n\nAge 속성 (get, set)을 가진다.\n\nPerson(id, name, age) 생성자를 구현한다.\n\nToString() 메서드를 재정의한다.\n\nMain() 함수에서 테스트\n\n",
+    "exampleCode": "프로그램 실행 예시:\n// 실행 결과",
+    "template": "using System;\nnamespace ex251124\n{\n    // 여기에 전체 코드를 작성하세요\n    \n    class Program\n    {\n        static void Main(string[] args)\n        {\n            \n        }\n    }\n}",
+    "answer": "using System;\nusing System.Collections.Generic;\nusing System.Linq;\nusing System.Security.Cryptography;\nnamespace ex251124\n{\n    class Person\n    {\n        public int Id { get; set; }\n        public string Name { get; set; }\n        public int Age { get; set; }\n        public Person(int id, string name, int age)\n        {\n            Id = id; Name = name; Age = age;\n        }\n        public override string ToString()\n        {\n            return $\"[Person : {Id}, {Name}, {Age}]\";\n        }\n    }\n    internal class Program\n    {\n        static Person[] CreateMockData()\n        {\n            return new Person[]\n            {\n                new Person(101, \"홍길동\", 25),\n                new Person(209, \"이몽룡\", 25),\n                new Person(701, \"성춘향\", 50),\n                new Person(312, \"장길산\", 63),\n                new Person(450, \"임꺽정\", 12),\n            };\n        }\n        static void Main(string[] args)\n        {\n            Person[] people = CreateMockData();\n            var subset1 = people.Where(p=> p.Name.Contains(\"길\") ).OrderBy(p => p.Id).Select(p => new { p.Name, p.Age });\n\n            foreach (var item in subset1)\n                Console.Write($\"{item} \");\n            Console.WriteLine();\n        }\n    }\n}",
+    "description": "Person 클래스를 포함한 전체 프로그램 코드를 작성하세요.",
+    "source": "251124",
+    "concepts": [
+      "Property",
+      "override",
+      "다형성",
+      "LINQ",
+      "var",
+      "Console",
+      "Array"
+    ]
+  },
+  {
+    "id": 180,
+    "type": "full2",
+    "title": "[통합 개념 2] 전체 프로그램 코드 작성하기2",
+    "requirements": "EventArgs를 상속하는 프로그램을 작성하시오.\n\n세부 조건\n\nIndexRandomArgs 클래스 구현\n\nEventArgs를 상속한다.\n\nIndex 속성 (get, set)을 가진다.\n\nArrayPrinter 클래스 구현\n\nArrayPrinter(arr) 생성자를 구현한다.\n\nPrint() 메서드를 구현한다.\n\nMain() 함수에서 테스트\n\n",
+    "exampleCode": "출력 예시:\n\n실행 결과를 확인하세요.",
+    "template": "using System;\nnamespace ex251124\n{\n    // 여기에 전체 코드를 작성하세요\n    \n    class Program\n    {\n        static void Main(string[] args)\n        {\n            \n        }\n    }\n}",
+    "answer": "using System;\nusing System.Timers;\n\nnamespace ex251124\n{\n    class IndexRandomArgs : EventArgs\n    {\n        public int Index { get; set; }\n    }\n    class ArrayPrinter\n    {\n        public event EventHandler<IndexRandomArgs> IndexEvent;\n\n        private int[] buf;\n        public ArrayPrinter(int[] arr)\n        {\n            buf = arr;\n        }\n        public void Print()\n        {\n            int rIndex = new Random().Next(buf.Length);\n            for (int i = 0; i < buf.Length; ++i)\n            {\n                if (i == rIndex)\n                    IndexEvent?.Invoke(this, new IndexRandomArgs() { Index = i });\n                else\n                    Console.WriteLine($\"[{i}] : {buf[i]}\");\n            }\n        }\n    }\n    internal class Program\n    {\n        static void Main(string[] args)\n        {\n            ArrayPrinter ap = new ArrayPrinter(new[] { 6, 5, 90, 76, 35, 76, 23 });\n            ap.IndexEvent += (sender, e) =>\n            {\n                Console.WriteLine(\"{0} index 에서 랜덤 이벤트 발생!\", e.Index);\n            };\n            ap.Print();\n        }\n    }\n}",
+    "description": "IndexRandomArgs 클래스를 포함한 전체 프로그램 코드를 작성하세요.",
+    "source": "251124",
+    "concepts": [
+      "Property",
+      "이벤트",
+      "Random",
+      "Console",
+      "Array"
+    ]
+  },
+  {
+    "id": 181,
+    "type": "full2",
+    "title": "[단독 개념 1] 전체 프로그램 코드 작성하기2",
+    "requirements": "ApplicationException를 상속하는 프로그램을 작성하시오.\n\n세부 조건\n\nNotIntegerException 클래스 구현\n\nApplicationException를 상속한다.\n\nNotIntegerException(msg, em) 생성자를 구현한다.\n\nMain() 함수에서 테스트\n\n",
+    "exampleCode": "출력 예시:\n\n실행 결과를 확인하세요.",
+    "template": "using System;\nnamespace ex251201\n{\n    // 여기에 전체 코드를 작성하세요\n    \n    class Program\n    {\n        static void Main(string[] args)\n        {\n            \n        }\n    }\n}",
+    "answer": "using System;\nusing System.Net.Configuration;\nnamespace ex251201\n{\n    class NotIntegerException : ApplicationException\n    {\n        string errorMessage;\n        public NotIntegerException(string msg, string em) : base(msg) { }\n\n        public override string Message => base.Message + \" : \" + errorMessage;\n\n    }\n    static class Integer\n    {\n        public static int InputInteger()\n        {\n            Console.Write(\"정수를 입력 : \");\n            string data = Console.ReadLine();\n            if (int.TryParse(data, out int value))\n            {\n                return value;\n            }\n            else\n            {\n                throw new NotIntegerException(\"NotIntegerExecption 발생 \", data);\n            }\n        }\n        public static void PrintInteger(int value)\n        {\n            Console.WriteLine($\"integer : {value}\");\n        }\n    }\n    internal class Program\n    {\n        static void Main(string[] args)\n        {\n            try\n            {\n                int data = Integer.InputInteger();\n                Integer.PrintInteger(data);\n            }\n            catch (NotIntegerException e)\n            {\n                Console.WriteLine(\"NotIE + \"+ e.Message );\n            }\n            catch (Exception e)\n            {\n                Console.WriteLine(\"예외! : {0}\", e.Message);\n                Console.WriteLine(\"예외! : {0}\", e.StackTrace);\n            }\n\n            Console.WriteLine(\"독립적인 작업 : 프로그램 완료~\");\n        }\n    }\n}",
+    "description": "NotIntegerException 클래스를 포함한 전체 프로그램 코드를 작성하세요.",
+    "source": "251201",
+    "concepts": [
+      "Property",
+      "override",
+      "다형성",
+      "ref-out",
+      "예외처리",
+      "Console",
+      "Array"
+    ]
+  },
+  {
+    "id": 182,
+    "type": "full2",
+    "title": "[단독 개념 2] 전체 프로그램 코드 작성하기2",
+    "requirements": "세부 조건\n\nMain() 함수에서 테스트\n\n",
+    "exampleCode": "출력 예시:\n\n실행 결과를 확인하세요.",
+    "template": "using System;\nnamespace ex251201\n{\n    // 여기에 전체 코드를 작성하세요\n    \n    class Program\n    {\n        static void Main(string[] args)\n        {\n            \n        }\n    }\n}",
+    "answer": "using System;\nusing System.Threading;\n\nnamespace ex251201\n{\n    static class ThreadInfo\n    {\n        public static int ID => Thread.CurrentThread.ManagedThreadId;\n    }\n    class Program\n    {\n        static void PrintHello()\n        {\n            for (int i = 0; i < 10; ++i)\n            {\n                Console.WriteLine($\"[{ThreadInfo.ID} - {i} : Hello\");\n                Thread.Sleep(1000);\n            }\n        }\n        static void Main(string[] args)\n        {\n            Thread t1 = new Thread(new ThreadStart(PrintHello));\n            Thread t2 = new Thread(new ThreadStart(PrintHello));\n            t1.Start();\n            t2.Start();\n\n            Console.WriteLine($\"[{ThreadInfo.ID}]는 대기중...\");\n            Console.ReadLine();\n            Console.WriteLine(\" 프로그램 종료 !\");\n        }\n    }\n}",
+    "description": "ThreadInfo 클래스를 포함한 전체 프로그램 코드를 작성하세요.",
+    "source": "251201",
+    "concepts": [
+      "IEnumerable",
+      "Property",
+      "Thread",
+      "Console",
+      "Array"
+    ]
+  },
+  {
+    "id": 183,
+    "type": "full2",
+    "title": "[통합 개념 1] 전체 프로그램 코드 작성하기2",
+    "requirements": "프로그램을 작성하시오.\n\n세부 조건\n\nTP 클래스 구현\n\npublic int Count 필드를 가진다.\n\nMain() 함수에서 테스트\n\n",
+    "exampleCode": "출력 예시:\n\n실행 결과를 확인하세요.",
+    "template": "using System;\nnamespace ex251201\n{\n    // 여기에 전체 코드를 작성하세요\n    \n    class Program\n    {\n        static void Main(string[] args)\n        {\n            \n        }\n    }\n}",
+    "answer": "using System;\nusing System.Threading;\n\nnamespace ex251201\n{\n    static class ThreadInfo\n    {\n        public static int ID => Thread.CurrentThread.ManagedThreadId;\n    }\n    class Program\n    {\n        static void PrintHello(object state)\n        {\n            TP param = (TP)state;\n            for (int i = 0; i < 1000_000; ++i)\n            {\n                lock (param)\n                {\n                    param.Count++;\n                }\n            }\n        }\n        class TP\n        {\n            public int Count;\n        }\n        static void Main(string[] args)\n        {\n            Thread t1 = new Thread(new ParameterizedThreadStart(PrintHello));\n            Thread t2 = new Thread(PrintHello);\n            TP tp = new TP { Count = 0 };\n            t1.Start(tp);\n            t2.Start(tp);\n\n            Console.WriteLine($\"[{ThreadInfo.ID}]는 대기중...\");\n            t1.Join();\n            t2.Join();\n            Console.WriteLine(\"Count :{0} 프로그램 종료 !\", tp.Count);\n        }\n    }\n}",
+    "description": "ThreadInfo 클래스를 포함한 전체 프로그램 코드를 작성하세요.",
+    "source": "251201",
+    "concepts": [
+      "IEnumerable",
+      "Property",
+      "Thread",
+      "lock",
+      "Console",
+      "Array"
+    ]
+  },
+  {
+    "id": 184,
+    "type": "full2",
+    "title": "[단독 개념 1] 전체 프로그램 코드 작성하기2",
+    "requirements": "세부 조건\n\nMain() 함수에서 테스트\n\n",
+    "exampleCode": "출력 예시:\n\n실행 결과를 확인하세요.",
+    "template": "using System;\nnamespace ex251208\n{\n    // 여기에 전체 코드를 작성하세요\n    \n    class Program\n    {\n        static void Main(string[] args)\n        {\n            \n        }\n    }\n}",
+    "answer": "using System;\nusing System.Threading;\nusing System.Threading.Tasks;\n\nnamespace ex251208\n{\n    internal class Program\n    {\n        static void Main(string[] args)\n        {\n            Task.Run(() =>\n            {\n                for (int i = 0; i < 10; i++)\n                {\n                    Thread.Sleep(1000);\n                    Console.WriteLine(\"Task 1 : {0}\", i);\n                }\n            });\n            Task.Run(() =>\n            {\n                for (int i = 0; i < 10; i++)\n                {\n                    Thread.Sleep(1000);\n                    Console.WriteLine(\"Task 2 : {0}\", i);\n                }\n            });\n\n            Console.WriteLine(\"종료하려면 아무키나...\");\n            Console.ReadLine();\n        }\n    }\n}",
+    "description": "Program 클래스를 포함한 전체 프로그램 코드를 작성하세요.",
+    "source": "251208",
+    "concepts": [
+      "Property",
+      "Thread",
+      "Task",
+      "Console",
+      "Array"
+    ]
+  },
+  {
+    "id": 185,
+    "type": "full2",
+    "title": "[단독 개념 2] 전체 프로그램 코드 작성하기2",
+    "requirements": "세부 조건\n\nMain() 함수에서 테스트\n\n",
+    "exampleCode": "출력 예시:\n\n실행 결과를 확인하세요.",
+    "template": "using System;\nnamespace ex251208\n{\n    // 여기에 전체 코드를 작성하세요\n    \n    class Program\n    {\n        static void Main(string[] args)\n        {\n            \n        }\n    }\n}",
+    "answer": "using System;\nusing System.Threading;\nusing System.Threading.Tasks;\n\nnamespace ex251208\n{\n    internal class Program\n    {\n        static void Main(string[] args)\n        {\n            long sum = 0;\n            object tkey = new object();\n            Task t1 = Task.Run(() =>\n            {\n                for (int i = 1; i <= 1_000_000; i++)\n                {\n                    lock (tkey)\n                    {\n                        sum += i;\n                    }\n                }\n            });\n            Task t2 = Task.Run(() =>\n            {\n                for (int i = 1_000_001; i <= 2_000_000; i++)\n                {\n                    lock ( tkey )\n                    {\n                        sum += i;\n                    }\n                }\n            });\n\n            Task.WaitAll(new Task[] { t1, t2 });\n            Console.WriteLine(\"결과 : {0}\", sum);\n            Console.ReadLine();\n        }\n    }\n}",
+    "description": "Program 클래스를 포함한 전체 프로그램 코드를 작성하세요.",
+    "source": "251208",
+    "concepts": [
+      "Property",
+      "Thread",
+      "lock",
+      "Task",
+      "Console",
+      "Array"
+    ]
+  },
+  {
+    "id": 186,
+    "type": "full2",
+    "title": "[통합 개념 1] 전체 프로그램 코드 작성하기2",
+    "requirements": "세부 조건\n\nMain() 함수에서 테스트\n\n",
+    "exampleCode": "출력 예시:\n\n실행 결과를 확인하세요.",
+    "template": "using System;\nnamespace ex251208\n{\n    // 여기에 전체 코드를 작성하세요\n    \n    class Program\n    {\n        static void Main(string[] args)\n        {\n            \n        }\n    }\n}",
+    "answer": "using System;\nusing System.Threading;\nusing System.Threading.Tasks;\nnamespace ex251208\n{\n    internal class Program\n    {\n        static int TID => Thread.CurrentThread.ManagedThreadId;\n        static async Task a()\n        {\n            Console.WriteLine(\"시작 a() : {0}\", TID);\n            Thread.Sleep(1000);\n            await Task.Delay(1000);\n            Console.WriteLine(\"a()\");\n            Console.WriteLine(\"끝 a() : {0}\", TID);\n        }\n        static async Task<double> b()\n        {\n            Random rnd = new Random();\n            await Task.Delay(rnd.Next(1000, 5000));\n            Console.WriteLine(\"b()\");\n            return 5.123;\n        }\n        static async Task c()\n        {\n            Random rnd = new Random();\n            await Task.Delay(rnd.Next(1000, 5000));\n            Console.WriteLine(\"c()\");\n        }\n        static void Main(string[] args)\n        {\n            Console.WriteLine(\"시작 Main() : {0}\", TID);\n            a();\n            Console.WriteLine(\"실행 Main() : {0}\", TID);\n            Console.ReadLine();\n        }\n    }\n}",
+    "description": "Program 클래스를 포함한 전체 프로그램 코드를 작성하세요.",
+    "source": "251208",
+    "concepts": [
+      "IEnumerable",
+      "Property",
+      "Thread",
+      "Task",
+      "async-await",
+      "Random",
+      "Console",
+      "Array"
+    ]
+  },
+  {
+    "id": 187,
+    "type": "full2",
+    "title": "[통합 개념 2] 전체 프로그램 코드 작성하기2",
+    "requirements": "세부 조건\n\nMain() 함수에서 테스트\n\n",
+    "exampleCode": "프로그램 실행 예시:\n// 실행 결과",
+    "template": "using System;\nnamespace ex251208\n{\n    // 여기에 전체 코드를 작성하세요\n    \n    class Program\n    {\n        static void Main(string[] args)\n        {\n            \n        }\n    }\n}",
+    "answer": "using System;\nusing System.Threading;\nusing System.Threading.Tasks;\nnamespace ex251208\n{\n    internal class Program\n    {\n        static async Task a()\n        {\n            Random rnd = new Random();\n            await Task.Delay(rnd.Next(1000, 5000));\n            Console.WriteLine(\"a()\");\n        }\n        static async Task b()\n        {\n            Random rnd = new Random();\n            await Task.Delay(rnd.Next(1000, 5000));\n            Console.WriteLine(\"b()\");\n        }\n        static async Task c()\n        {\n            Random rnd = new Random();\n            await Task.Delay(rnd.Next(1000, 5000));\n            Console.WriteLine(\"c()\");\n        }\n        static async Task ReadDBToSendWeb()\n        {\n            await a();\n            await b();\n            await c();\n        }\n        static void Main(string[] args)\n        {\n            Task t1 = ReadDBToSendWeb();\n            Task t2 = ReadDBToSendWeb();\n\n            Task.WaitAll(t1, t2);\n            Console.ReadLine();\n        }\n    }\n}",
+    "description": "Program 클래스를 포함한 전체 프로그램 코드를 작성하세요.",
+    "source": "251208",
+    "concepts": [
+      "Thread",
+      "Task",
+      "async-await",
+      "Random",
+      "Console",
+      "Array"
+    ]
   }
 ]
-
