@@ -563,8 +563,8 @@ app.get('/api/:subject/problems/:id', (req, res) => {
   // 코드 작성 칸: 작성할 부분만 (작성용)
   res.json({
     ...problem,
-    fullCode: (problem.type === 'class' || problem.type === 'method') ? problem.template : codeToWrite, // 클래스/메소드 문제는 전체 template, 아니면 작성할 부분
-    codeToWrite: (problem.type === 'class' || problem.type === 'method') ? codeToWrite : fullCode // 클래스/메소드 문제는 정의만, 아니면 전체 코드
+    fullCode: (problem.type === 'class' || problem.type === 'method') ? problem.template : fullCode, // 클래스/메소드 문제는 전체 template, 빈칸 채우기 등은 fullCode 변수 사용
+    codeToWrite: codeToWrite // 모든 타입에 대해 extractCodeToWrite 결과 사용 (클래스/메소드는 위에서 재설정됨)
     // answer는 포함되어 있지만, 프론트엔드에서 정답 보기 버튼을 눌렀을 때만 표시
   });
 });
