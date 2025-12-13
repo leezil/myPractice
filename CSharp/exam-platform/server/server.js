@@ -1406,6 +1406,11 @@ function normalizeCode(code) {
     .trim();
 }
 
+// 헬스체크 API (인스턴스 비활성화 방지용)
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 // 개념 카테고리 조회 API
 app.get('/api/concepts', (req, res) => {
   res.json(getConceptsByCategory());
@@ -1516,6 +1521,29 @@ app.listen(PORT, () => {
   console.log(`서버가 포트 ${PORT}에서 실행 중입니다.`);
   console.log(`개발 모드: http://localhost:${PORT}`);
   console.log(`프로덕션 모드: http://localhost:${PORT} (빌드 후)`);
+  
+  // Render 인스턴스 비활성화 방지: 5분마다 자기 자신에게 헬스체크 요청
+  const http = require('http');
+  const keepAlive = () => {
+    const url = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
+    const healthUrl = `${url}/api/health`;
+    
+    http.get(healthUrl, (res) => {
+      console.log(`[헬스체크] ${new Date().toISOString()} - 상태: ${res.statusCode}`);
+    }).on('error', (err) => {
+      // 로컬 환경에서는 에러가 발생할 수 있으므로 무시
+      if (process.env.NODE_ENV === 'production') {
+        console.log(`[헬스체크] ${new Date().toISOString()} - 실패 (무시됨):`, err.message);
+      }
+    });
+  };
+  
+  // 즉시 한 번 실행
+  keepAlive();
+  
+  // 5분(300초)마다 실행
+  setInterval(keepAlive, 5 * 60 * 1000);
+  console.log('[서버 시작] 인스턴스 비활성화 방지: 5분마다 헬스체크 실행');
 });
 
 
