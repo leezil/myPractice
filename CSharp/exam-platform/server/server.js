@@ -1524,18 +1524,31 @@ app.listen(PORT, () => {
   
   // Render 인스턴스 비활성화 방지: 5분마다 자기 자신에게 헬스체크 요청
   const http = require('http');
+  const https = require('https');
+  const { URL } = require('url');
+  
   const keepAlive = () => {
     const url = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
     const healthUrl = `${url}/api/health`;
     
-    http.get(healthUrl, (res) => {
-      console.log(`[헬스체크] ${new Date().toISOString()} - 상태: ${res.statusCode}`);
-    }).on('error', (err) => {
-      // 로컬 환경에서는 에러가 발생할 수 있으므로 무시
+    try {
+      const urlObj = new URL(healthUrl);
+      const client = urlObj.protocol === 'https:' ? https : http;
+      
+      client.get(healthUrl, (res) => {
+        console.log(`[헬스체크] ${new Date().toISOString()} - 상태: ${res.statusCode}`);
+      }).on('error', (err) => {
+        // 로컬 환경에서는 에러가 발생할 수 있으므로 무시
+        if (process.env.NODE_ENV === 'production') {
+          console.log(`[헬스체크] ${new Date().toISOString()} - 실패 (무시됨):`, err.message);
+        }
+      });
+    } catch (err) {
+      // URL 파싱 에러는 무시
       if (process.env.NODE_ENV === 'production') {
-        console.log(`[헬스체크] ${new Date().toISOString()} - 실패 (무시됨):`, err.message);
+        console.log(`[헬스체크] ${new Date().toISOString()} - URL 파싱 실패 (무시됨):`, err.message);
       }
-    });
+    }
   };
   
   // 즉시 한 번 실행
