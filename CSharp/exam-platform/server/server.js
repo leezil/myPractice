@@ -796,6 +796,7 @@ app.post('/api/:subject/problems/:id/submit', async (req, res) => {
     const lines = problem.template.split('\n');
     const result = [];
     let skipUntilBrace = false;
+    let closingBraceIndent = null; // 닫는 중괄호의 인덴트 저장
     let userCodeLines = code.split('\n').filter(l => l.trim() !== '');
     
     // 사용자가 입력한 코드에서 주석 제거
@@ -995,14 +996,42 @@ app.post('/api/:subject/problems/:id/submit', async (req, res) => {
         });
         result.push(...indentedUserCode);
         skipUntilBrace = true;
+        // 닫는 중괄호의 인덴트를 찾기 위해 다음 줄들을 확인
         let j = i + 1;
+        let closingBraceIndent = null;
+        while (j < lines.length) {
+          const nextLine = lines[j];
+          if (nextLine.trim() === '}') {
+            // 닫는 중괄호의 인덴트를 저장
+            const braceIndentMatch = nextLine.match(/^(\s*)/);
+            if (braceIndentMatch) {
+              closingBraceIndent = braceIndentMatch[1];
+              console.log(`[디버그] 닫는 중괄호 인덴트 발견: "${closingBraceIndent}" (${closingBraceIndent.length}칸)`);
+            }
+            break;
+          }
+          if (nextLine.trim() !== '') {
+            // 빈 줄이 아닌 다른 줄을 만나면 중단
+            break;
+          }
+          j++;
+        }
+        // 빈 줄들 건너뛰기
         while (j < lines.length && lines[j].trim() === '') {
           j++;
         }
         i = j - 1;
       } else if (skipUntilBrace && lines[i].trim() === '}') {
-        result.push(lines[i]);
+        // 닫는 중괄호를 올바른 인덴트로 추가
+        if (closingBraceIndent !== null) {
+          result.push(closingBraceIndent + '}');
+          console.log(`[디버그] 닫는 중괄호 추가 (인덴트: "${closingBraceIndent}" (${closingBraceIndent.length}칸))`);
+        } else {
+          // 인덴트를 찾지 못한 경우 원본 줄 사용
+          result.push(lines[i]);
+        }
         skipUntilBrace = false;
+        closingBraceIndent = null; // 초기화
       } else if (!skipUntilBrace) {
         result.push(lines[i]);
       }
