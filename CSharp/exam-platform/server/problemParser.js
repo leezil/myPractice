@@ -12,7 +12,8 @@ function loadProblemsFromJson(subject) {
   // 과목별 문제 파일 경로 매핑
   const subjectPaths = {
     'csharp': path.join(__dirname, 'csharp-sources', 'problems.json'),
-    'parenting': path.join(__dirname, 'parenting-sources', 'problems.json')
+    'parenting': path.join(__dirname, 'parenting-sources', 'problems.json'),
+    'object-oriented': path.join(__dirname, 'object-oriented-sources', 'problems.json')
   };
   
   const jsonPath = subjectPaths[subject];

@@ -17,6 +17,13 @@ function SubjectList() {
       description: '부모교육 강의 자료 및 정리',
       icon: '👨‍👩‍👧‍👦',
       color: '#f093fb'
+    },
+    {
+      id: 'object-oriented',
+      name: '객체지향',
+      description: '객체지향 프로그래밍 문제 풀이',
+      icon: '🔷',
+      color: '#4facfe'
     }
     // 추가 과목은 여기에 추가할 수 있습니다
   ];
