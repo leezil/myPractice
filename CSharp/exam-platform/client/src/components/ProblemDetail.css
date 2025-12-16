@@ -193,6 +193,7 @@
   grid-template-columns: 1fr 1fr;
   gap: 2rem;
   margin-top: 2rem;
+  align-items: start;
 }
 
 .problem-description {
@@ -209,6 +210,7 @@
   overflow-y: auto;
   position: sticky;
   top: 2rem;
+  align-self: start;
 }
 
 .description-box h3 {
@@ -338,6 +340,7 @@
 .code-editor-section {
   display: flex;
   flex-direction: column;
+  align-self: start;
 }
 
 .editor-header {
@@ -549,6 +552,19 @@
 
 .back-button:hover {
   background: #5568d3;
+}
+
+.problem-detail-footer {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 2px solid #f0f0f0;
+  display: flex;
+  justify-content: center;
+}
+
+.footer-navigation {
+  display: flex;
+  gap: 0.5rem;
 }
 
 @media (max-width: 1024px) {

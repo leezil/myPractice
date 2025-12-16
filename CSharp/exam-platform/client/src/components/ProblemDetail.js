@@ -377,6 +377,38 @@ function ProblemDetail() {
           )}
         </div>
       </div>
+
+      {/* 하단 네비게이션 */}
+      <div className="problem-detail-footer">
+        <div className="footer-navigation">
+          {prevProblemId && (
+            <Link 
+              to={`/${subject}/problem/${prevProblemId}`} 
+              className="nav-button prev-button"
+              onClick={() => {
+                setResult(null);
+                setCode('');
+                setShowAnswer(false);
+              }}
+            >
+              ← 이전 문제
+            </Link>
+          )}
+          {nextProblemId && (
+            <Link 
+              to={`/${subject}/problem/${nextProblemId}`} 
+              className="nav-button next-button"
+              onClick={() => {
+                setResult(null);
+                setCode('');
+                setShowAnswer(false);
+              }}
+            >
+              다음 문제 →
+            </Link>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
