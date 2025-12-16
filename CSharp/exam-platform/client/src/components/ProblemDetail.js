@@ -211,8 +211,10 @@ function ProblemDetail() {
 
       <div className="problem-detail-content">
         <div className="problem-description">
-          <div className="description-box">
+          <div className="description-header">
             <h3>문제 설명</h3>
+          </div>
+          <div className="description-box">
             {problem.type === 'multiple_choice' ? (
               <div className="multiple-choice-question">
                 <p className="question-text">{problem.question || problem.description}</p>
